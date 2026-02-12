@@ -36,6 +36,33 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <script>
+    // Web Audio sound synthesis for Darts app
+    window._dartAudioCtx = null;
+    window._getDartAudioCtx = function() {
+      if (!window._dartAudioCtx) {
+        window._dartAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      var c = window._dartAudioCtx;
+      if (c.state === 'suspended') c.resume();
+      return c;
+    };
+    window.playDartTone = function(freq, dur, type, vol) {
+      try {
+        var c = window._getDartAudioCtx();
+        var o = c.createOscillator();
+        var g = c.createGain();
+        o.type = type;
+        o.frequency.setValueAtTime(freq, c.currentTime);
+        g.gain.setValueAtTime(vol, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur);
+        o.connect(g);
+        g.connect(c.destination);
+        o.start(c.currentTime);
+        o.stop(c.currentTime + dur);
+      } catch(e) {}
+    };
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

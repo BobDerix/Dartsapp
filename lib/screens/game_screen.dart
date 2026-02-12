@@ -438,10 +438,9 @@ class _ControlArea extends StatelessWidget {
   Widget _buildNextButton(BuildContext context) {
     final isReady = game.roundComplete;
     final isJudge = game.currentChallenge?.type == ChallengeType.closest;
-    final isElim = game.currentChallenge?.type == ChallengeType.elimination;
 
-    // Judge and elimination resolve themselves
-    if (isJudge || isElim) return const SizedBox.shrink();
+    // Judge resolves itself
+    if (isJudge) return const SizedBox.shrink();
 
     return AnimatedOpacity(
       opacity: isReady ? 1.0 : 0.0,
@@ -559,7 +558,7 @@ class _HitMissRow extends StatelessWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
+class _ActionButton extends StatefulWidget {
   final String label;
   final bool isActive;
   final Color activeColor;
@@ -575,29 +574,76 @@ class _ActionButton extends StatelessWidget {
   });
 
   @override
+  State<_ActionButton> createState() => _ActionButtonState();
+}
+
+class _ActionButtonState extends State<_ActionButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _anim;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(
+      duration: const Duration(milliseconds: 120),
+      vsync: this,
+    );
+    _scale = Tween(begin: 1.0, end: 0.9).animate(
+      CurvedAnimation(parent: _anim, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: isActive ? activeColor : const Color(0xFF2C3E50),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: isActive
-              ? [BoxShadow(color: activeColor.withAlpha(102), blurRadius: 10)]
-              : null,
+      onTapDown: widget.onTap != null ? (_) => _anim.forward() : null,
+      onTapUp: widget.onTap != null
+          ? (_) {
+              _anim.reverse();
+              widget.onTap!();
+            }
+          : null,
+      onTapCancel: () => _anim.reverse(),
+      child: AnimatedBuilder(
+        animation: _scale,
+        builder: (_, child) => Transform.scale(
+          scale: _scale.value,
+          child: child,
         ),
-        child: AnimatedOpacity(
-          opacity: isLocked ? 0.3 : 1.0,
+        child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: widget.isActive
+                ? widget.activeColor
+                : const Color(0xFF2C3E50),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: widget.isActive
+                ? [
+                    BoxShadow(
+                        color: widget.activeColor.withAlpha(102),
+                        blurRadius: 10)
+                  ]
+                : null,
+          ),
+          child: AnimatedOpacity(
+            opacity: widget.isLocked ? 0.3 : 1.0,
+            duration: const Duration(milliseconds: 200),
+            child: Text(
+              widget.label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
             ),
           ),
         ),
@@ -639,15 +685,21 @@ class _ScoreEntryControlsState extends State<_ScoreEntryControls> {
 
   void _submitP1() {
     final score = int.tryParse(_p1Controller.text);
-    if (score != null) {
+    if (score != null && score >= 0 && score <= 180) {
       widget.game.setScore(0, score);
+    } else if (score != null && score > 180) {
+      _p1Controller.text = '180';
+      widget.game.setScore(0, 180);
     }
   }
 
   void _submitP2() {
     final score = int.tryParse(_p2Controller.text);
-    if (score != null) {
+    if (score != null && score >= 0 && score <= 180) {
       widget.game.setScore(1, score);
+    } else if (score != null && score > 180) {
+      _p2Controller.text = '180';
+      widget.game.setScore(1, 180);
     }
   }
 
@@ -766,7 +818,7 @@ class _ScoreEntryRow extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             decoration: InputDecoration(
-              hintText: isThreshold ? 'Score (target: $target)' : 'Enter score',
+              hintText: isThreshold ? 'Score (target: $target, max 180)' : 'Enter score (max 180)',
             ),
             onSubmitted: (_) => onSubmit(),
           ),

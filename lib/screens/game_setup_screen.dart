@@ -17,7 +17,6 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
 
   String _mode = '2p';
   int _target = 10;
-  String _focus = 'all';
 
   @override
   void dispose() {
@@ -35,7 +34,6 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
           ? (_p2Controller.text.isEmpty ? 'Player 2' : _p2Controller.text)
           : null,
       target: _target,
-      focus: _focus,
     );
 
     if (!mounted) return;
@@ -79,22 +77,6 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                   options: const {'10': 'First to 10', '20': 'First to 20', '50': 'First to 50'},
                   selected: _target.toString(),
                   onChanged: (v) => setState(() => _target = int.parse(v)),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Focus Area
-              _SettingsGroup(
-                label: 'FOCUS AREA',
-                child: _ToggleRow(
-                  options: const {
-                    'all': 'Balanced',
-                    'scoring': 'Scoring',
-                    'doubles': 'Doubles',
-                    'checkouts': 'Checkouts',
-                  },
-                  selected: _focus,
-                  onChanged: (v) => setState(() => _focus = v),
                 ),
               ),
               const SizedBox(height: 12),
