@@ -23,6 +23,16 @@ class AppColors {
   static const catBattle = Color(0xFFE74C3C);
   static const catSpecial = Color(0xFF8E44AD);
 
+  // Chaos card colors
+  static const chaosGold = Color(0xFFFFD700);
+  static const chaosBackground = Color(0xFF1A0033);
+  static const chaosBorder = Color(0xFFFF6B00);
+
+  // Commentary / timer
+  static const commentaryBg = Color(0xFF1A1A2E);
+  static const timerWarning = Color(0xFFFF4444);
+  static const timerNormal = Color(0xFF44FF44);
+
   static Color categoryColor(String category) => switch (category.toUpperCase()) {
     'PRECISION' => catPrecision,
     'SCORING' => catScoring,

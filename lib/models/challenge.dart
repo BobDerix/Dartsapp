@@ -32,7 +32,13 @@ enum ChallengeType {
   countdown,
 
   /// Multiple sub-rounds. Most hits out of N rounds = 1 point.
-  elimination;
+  elimination,
+
+  /// Players bid how many darts they need. Lowest bidder executes.
+  auction,
+
+  /// Players alternate scoring. Each must beat the previous score.
+  progressive;
 
   String get dbValue => switch (this) {
     hitMiss => 'hit_miss',
@@ -41,6 +47,8 @@ enum ChallengeType {
     threshold => 'threshold',
     countdown => 'countdown',
     elimination => 'elimination',
+    auction => 'auction',
+    progressive => 'progressive',
   };
 
   static ChallengeType fromDb(String value) => switch (value) {
@@ -50,6 +58,8 @@ enum ChallengeType {
     'threshold' => threshold,
     'countdown' => countdown,
     'elimination' => elimination,
+    'auction' => auction,
+    'progressive' => progressive,
     _ => hitMiss,
   };
 }
@@ -61,8 +71,11 @@ class Challenge {
   final String text;
   final String emoji;
   final int difficulty; // 1-5
-  final int? targetValue; // for threshold/countdown
-  final int subRounds; // for elimination (default 3)
+  final int? targetValue; // for threshold/countdown/auction
+  final int subRounds; // for elimination (default 1)
+  final bool isRoulette; // show roulette spinner animation
+  final bool hasTimer; // show countdown timer overlay
+  final int timerSeconds; // timer duration (default 15)
 
   const Challenge({
     this.id,
@@ -73,6 +86,9 @@ class Challenge {
     this.difficulty = 1,
     this.targetValue,
     this.subRounds = 1,
+    this.isRoulette = false,
+    this.hasTimer = false,
+    this.timerSeconds = 15,
   });
 
   Map<String, dynamic> toMap() => {
@@ -100,7 +116,14 @@ class Challenge {
     subRounds: map['sub_rounds'] as int? ?? 1,
   );
 
-  Challenge copyWith({String? text, String? emoji, int? targetValue}) =>
+  Challenge copyWith({
+    String? text,
+    String? emoji,
+    int? targetValue,
+    bool? isRoulette,
+    bool? hasTimer,
+    int? timerSeconds,
+  }) =>
       Challenge(
         id: id,
         category: category,
@@ -110,6 +133,9 @@ class Challenge {
         difficulty: difficulty,
         targetValue: targetValue ?? this.targetValue,
         subRounds: subRounds,
+        isRoulette: isRoulette ?? this.isRoulette,
+        hasTimer: hasTimer ?? this.hasTimer,
+        timerSeconds: timerSeconds ?? this.timerSeconds,
       );
 
   @override

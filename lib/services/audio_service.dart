@@ -14,4 +14,9 @@ class AudioService {
   void win() => _audio.win();
   void tap() => _audio.tap();
   void streak() => _audio.streak();
+  void chaosCard() => _audio.chaosCard();
+  void timerTick() => _audio.timerTick();
+  void timerEnd() => _audio.timerEnd();
+  void rouletteSpin() => _audio.rouletteSpin();
+  void bigScore() => _audio.bigScore();
 }

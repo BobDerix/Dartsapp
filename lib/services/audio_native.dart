@@ -18,4 +18,19 @@ class NativeAudio implements PlatformAudio {
 
   @override
   void streak() => HapticFeedback.mediumImpact();
+
+  @override
+  void chaosCard() => HapticFeedback.vibrate();
+
+  @override
+  void timerTick() => HapticFeedback.selectionClick();
+
+  @override
+  void timerEnd() => HapticFeedback.heavyImpact();
+
+  @override
+  void rouletteSpin() => HapticFeedback.selectionClick();
+
+  @override
+  void bigScore() => HapticFeedback.vibrate();
 }

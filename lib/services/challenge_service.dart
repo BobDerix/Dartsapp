@@ -24,13 +24,23 @@ class ChallengeService {
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🎨', text: 'Hit all 3 colours (red, green, white/black)', difficulty: 2),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🏠', text: 'All 3 darts in the same number', difficulty: 4),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🪜', text: 'Hit 3 consecutive numbers (e.g. 18-19-20)', difficulty: 3),
-    // New precision challenges
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '😈', text: 'Hit T19 (the wrong bed!)', difficulty: 4),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🟡', text: 'Hit the outer Bull (25)', difficulty: 4),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '⬅️', text: 'Left side only! (1-10 half)', difficulty: 3),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '📐', text: 'All 3 darts in the big singles', difficulty: 2),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🎰', text: 'Hit S20, D20 and T20', difficulty: 5),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🔄', text: 'Around the board: hit 3 different areas (top, left, right)', difficulty: 2),
+
+    // ── NEW PRECISION: Darts culture classics (G) ──
+    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '💄', text: 'The Lipstick! Hit T20, T18 or T19', difficulty: 3),
+    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🏝️', text: 'The Coast! Round the board: hit as many consecutive numbers from 1 upward in 3 darts', difficulty: 3),
+    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🏠', text: 'Madhouse! Check out on D1 (the hardest double)', difficulty: 5),
+    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '👑', text: 'The Crown! Hit T20 with all 3 darts', difficulty: 5),
+    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🗼', text: 'The Tower! Hit T19 with all 3 darts', difficulty: 5),
+    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🛤️', text: 'The Railway! All 3 darts between the two wires of a double', difficulty: 4),
+    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🪶', text: 'Feather Touch! All 3 darts in the thin inner single', difficulty: 3),
+    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🍀', text: 'Lucky 7s! Hit S7, D7 or T7', difficulty: 3),
+    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🧲', text: 'Magnet! All 3 darts touching each other in the board', difficulty: 3),
 
     // ── SCORING (Threshold) ──
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.threshold, emoji: '📈', text: 'Score 60+', targetValue: 60, difficulty: 2),
@@ -41,10 +51,14 @@ class ChallengeService {
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🔥', text: '180! Hit T20 T20 T20', difficulty: 5),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🧱', text: 'No 1s or 5s allowed', difficulty: 2),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🚫', text: 'Score under 20 (low is hard!)', difficulty: 3),
-    // New scoring challenges
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🥐', text: 'Score exactly 26 (Breakfast!)', difficulty: 3),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '👑', text: 'Score a ton (100+) without T20', difficulty: 4),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🎲', text: 'All 3 darts must score (no misses!)', difficulty: 2),
+
+    // ── NEW SCORING: Darts culture (G) ──
+    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.threshold, emoji: '🍽️', text: 'Bed & Breakfast & Lunch! Score 41+ (S20, S1, D10)', targetValue: 41, difficulty: 3),
+    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🐂', text: 'Ton-80 Territory! Score 60+ using only T20 area', difficulty: 4),
+    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🎭', text: 'The Entertainer! Hit 3 different triples in one visit', difficulty: 4),
 
     // ── SCORING (Best Score) ──
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.bestScore, emoji: '⚔️', text: 'Highest 3-dart score wins!', difficulty: 2),
@@ -59,30 +73,51 @@ class ChallengeService {
     Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🎯', text: 'Checkout 40 (Double 20)', targetValue: 40, difficulty: 2),
     Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🏁', text: 'Checkout 80', targetValue: 80, difficulty: 3),
     Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🏁', text: 'Checkout 100', targetValue: 100, difficulty: 4),
-    // New finish challenges
     Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🥫', text: 'Checkout 57 (Heinz!)', targetValue: 57, difficulty: 3),
     Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🎯', text: 'Checkout 50 (Bullseye finish!)', targetValue: 50, difficulty: 3),
     Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '2️⃣', text: 'Checkout 24 (2 Dozen)', targetValue: 24, difficulty: 2),
     Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '💯', text: 'Checkout 120', targetValue: 120, difficulty: 4),
     Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🐍', text: 'Checkout 167 (T20, T19, Bull)', targetValue: 167, difficulty: 5),
 
+    // ── NEW FINISH: Darts culture (G) ──
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🇳🇱', text: 'Checkout 84 (The Barney!)', targetValue: 84, difficulty: 3),
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', text: 'Checkout 96 (The Bristow!)', targetValue: 96, difficulty: 3),
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🎭', text: 'Checkout 110 (T20, Bull)', targetValue: 110, difficulty: 4),
+
     // ── BATTLE (Closest / Judge) ──
     Challenge(category: ChallengeCategory.battle, type: ChallengeType.closest, emoji: '🎯', text: 'Closest to the Bull!', difficulty: 3),
     Challenge(category: ChallengeCategory.battle, type: ChallengeType.closest, emoji: '🏹', text: 'Closest to Triple 20!', difficulty: 4),
     Challenge(category: ChallengeCategory.battle, type: ChallengeType.closest, emoji: '🎪', text: 'Closest to Double 16!', difficulty: 3),
-    // New battle challenges
     Challenge(category: ChallengeCategory.battle, type: ChallengeType.closest, emoji: '📏', text: 'Tightest grouping! (3 darts closest together)', difficulty: 3),
+
+    // ── NEW BATTLE: Darts culture (G) ──
+    Challenge(category: ChallengeCategory.battle, type: ChallengeType.closest, emoji: '🎯', text: 'Middle for Diddle! Closest to Bull decides!', difficulty: 3),
+    Challenge(category: ChallengeCategory.battle, type: ChallengeType.closest, emoji: '🔥', text: 'Mugs Away! Loser of last round throws first. Closest to T20!', difficulty: 4),
+
+    // ── BATTLE: Progressive (F - new type) ──
+    Challenge(category: ChallengeCategory.battle, type: ChallengeType.progressive, emoji: '📈', text: 'Progressive! Each player must beat the other\'s last score', difficulty: 3),
+    Challenge(category: ChallengeCategory.battle, type: ChallengeType.progressive, emoji: '🔥', text: 'Score War! Keep raising the bar until someone cracks', difficulty: 4),
+
+    // ── BATTLE: Auction (F - new type) ──
+    Challenge(category: ChallengeCategory.battle, type: ChallengeType.auction, emoji: '🔨', text: 'Auction!', targetValue: 80, difficulty: 3),
+    Challenge(category: ChallengeCategory.battle, type: ChallengeType.auction, emoji: '🔨', text: 'Auction!', targetValue: 120, difficulty: 4),
 
     // ── SPECIAL (Elimination) ──
     Challenge(category: ChallengeCategory.special, type: ChallengeType.elimination, emoji: '💀', text: 'Hit any Double (3 lives)', subRounds: 3, difficulty: 3),
     Challenge(category: ChallengeCategory.special, type: ChallengeType.elimination, emoji: '💀', text: 'Hit any Triple (3 lives)', subRounds: 3, difficulty: 4),
     Challenge(category: ChallengeCategory.special, type: ChallengeType.elimination, emoji: '☠️', text: 'Hit the Bull (3 lives)', subRounds: 3, difficulty: 4),
     Challenge(category: ChallengeCategory.special, type: ChallengeType.elimination, emoji: '🫣', text: 'Hit any number > 10 (5 lives)', subRounds: 5, difficulty: 2),
-    // New special challenges
     Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '🤚', text: 'Weak hand throw! Score with non-dominant hand', difficulty: 3),
-    Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '⏱️', text: 'Speed round! 3 darts in under 10 seconds', difficulty: 2),
     Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '🙈', text: 'Eyes closed! Throw 1 dart blind - hit the board', difficulty: 2),
     Challenge(category: ChallengeCategory.special, type: ChallengeType.elimination, emoji: '🪙', text: 'Hit T20 (3 lives)', subRounds: 3, difficulty: 5),
+
+    // ── NEW SPECIAL: Timer challenges (F - timer pressure) ──
+    Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '⏱️', text: 'SPEED ROUND! 3 darts in 10 seconds - score 40+!', difficulty: 3, hasTimer: true, timerSeconds: 10),
+    Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '⏱️', text: 'SPEED ROUND! Hit any double in 15 seconds!', difficulty: 3, hasTimer: true, timerSeconds: 15),
+    Challenge(category: ChallengeCategory.special, type: ChallengeType.threshold, emoji: '💨', text: 'BLITZ! Score 60+ in 15 seconds!', targetValue: 60, difficulty: 3, hasTimer: true, timerSeconds: 15),
+
+    // ── NEW SPECIAL: Roulette (F - board roulette) ──
+    Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '🎡', text: 'ROULETTE!', difficulty: 3, isRoulette: true),
   ];
 
   /// Generate a random checkout value, avoiding bogey numbers.
@@ -98,12 +133,76 @@ class ChallengeService {
     return num;
   }
 
+  /// Generate a roulette challenge with a random segment.
+  Challenge _generateRoulette() {
+    final seg = _segments[_random.nextInt(_segments.length)];
+    final options = [
+      'Hit Single $seg!',
+      'Hit Double $seg!',
+      'Hit Triple $seg!',
+      'Hit any $seg!',
+    ];
+    final difficulties = [2, 3, 4, 2];
+    final idx = _random.nextInt(options.length);
+    return Challenge(
+      category: ChallengeCategory.special,
+      type: ChallengeType.hitMiss,
+      emoji: '🎡',
+      text: 'ROULETTE! ${options[idx]}',
+      difficulty: difficulties[idx],
+      isRoulette: true,
+    );
+  }
+
+  /// Generate an auction challenge with a random checkout.
+  Challenge _generateAuction() {
+    final co = _randomCheckout();
+    return Challenge(
+      category: ChallengeCategory.battle,
+      type: ChallengeType.auction,
+      emoji: '🔨',
+      text: 'Auction! Checkout $co',
+      targetValue: co,
+      difficulty: co > 100 ? 4 : 3,
+    );
+  }
+
   /// Generate a challenge based on game settings.
   Challenge generate({
     required String focusArea,
     required bool isTwoPlayer,
     Challenge? lastChallenge,
   }) {
+    // 8% chance of roulette
+    if (_random.nextDouble() < 0.08) {
+      return _generateRoulette();
+    }
+
+    // 8% chance of auction in 2P mode
+    if (isTwoPlayer && _random.nextDouble() < 0.08) {
+      return _generateAuction();
+    }
+
+    // 8% chance of progressive in 2P mode
+    if (isTwoPlayer && _random.nextDouble() < 0.08) {
+      final progressives = _staticChallenges.where(
+        (c) => c.type == ChallengeType.progressive,
+      ).toList();
+      if (progressives.isNotEmpty) {
+        return progressives[_random.nextInt(progressives.length)];
+      }
+    }
+
+    // 8% chance of timer challenge
+    if (_random.nextDouble() < 0.08) {
+      final timerChallenges = _staticChallenges.where(
+        (c) => c.hasTimer,
+      ).toList();
+      if (timerChallenges.isNotEmpty) {
+        return timerChallenges[_random.nextInt(timerChallenges.length)];
+      }
+    }
+
     // 15% chance of battle in 2P mode
     if (isTwoPlayer && _random.nextDouble() < 0.15) {
       return _pickBattle();
@@ -173,12 +272,14 @@ class ChallengeService {
       pool.addAll(_staticChallenges);
     }
 
-    // Filter out bestScore/closest/elimination challenges in single-player mode
+    // Filter out types that don't work in single-player mode
     if (!isTwoPlayer) {
       pool.removeWhere(
         (c) => c.type == ChallengeType.bestScore ||
             c.type == ChallengeType.closest ||
-            c.type == ChallengeType.elimination,
+            c.type == ChallengeType.elimination ||
+            c.type == ChallengeType.auction ||
+            c.type == ChallengeType.progressive,
       );
     }
 
@@ -192,7 +293,9 @@ class ChallengeService {
 
   Challenge _pickBattle() {
     final battles = _staticChallenges.where(
-      (c) => c.category == ChallengeCategory.battle,
+      (c) => c.category == ChallengeCategory.battle &&
+          c.type != ChallengeType.auction &&
+          c.type != ChallengeType.progressive,
     ).toList();
     // Add dynamic battle
     final seg = _segments[_random.nextInt(_segments.length)];
@@ -230,4 +333,10 @@ class ChallengeService {
       difficulty: 5,
     );
   }
+
+  /// Dart board segment names for roulette display.
+  static const boardSegments = [
+    20, 1, 18, 4, 13, 6, 10, 15, 2, 17,
+    3, 19, 7, 16, 8, 11, 14, 9, 12, 5,
+  ];
 }

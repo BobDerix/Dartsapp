@@ -4,4 +4,9 @@ abstract class PlatformAudio {
   void win();
   void tap();
   void streak();
+  void chaosCard();
+  void timerTick();
+  void timerEnd();
+  void rouletteSpin();
+  void bigScore();
 }
