@@ -1,21 +1,17 @@
-import 'package:flutter/services.dart';
+import 'audio_interface.dart';
+import 'audio_native.dart' if (dart.library.html) 'audio_web.dart'
+    as platform_audio;
 
-/// Simple haptic + system sound feedback.
-/// No external audio packages needed.
 class AudioService {
-  void hit() {
-    HapticFeedback.lightImpact();
-  }
+  static final AudioService _instance = AudioService._internal();
+  factory AudioService() => _instance;
+  AudioService._internal();
 
-  void miss() {
-    HapticFeedback.heavyImpact();
-  }
+  final PlatformAudio _audio = platform_audio.createAudio();
 
-  void win() {
-    HapticFeedback.vibrate();
-  }
-
-  void tap() {
-    HapticFeedback.selectionClick();
-  }
+  void hit() => _audio.hit();
+  void miss() => _audio.miss();
+  void win() => _audio.win();
+  void tap() => _audio.tap();
+  void streak() => _audio.streak();
 }

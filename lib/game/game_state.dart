@@ -88,7 +88,6 @@ class GameState extends ChangeNotifier {
     required String p1Name,
     String? p2Name,
     required int target,
-    required String focus,
   }) async {
     player1 = await _db.getOrCreatePlayer(p1Name);
     if (p2Name != null && p2Name.isNotEmpty) {
@@ -100,7 +99,7 @@ class GameState extends ChangeNotifier {
     }
 
     targetScore = target;
-    focusArea = focus;
+    focusArea = 'all';
 
     p1State = PlayerState();
     p2State = PlayerState();
@@ -114,7 +113,7 @@ class GameState extends ChangeNotifier {
       player1Id: player1!.id!,
       player2Id: player2?.id,
       targetScore: target,
-      focusArea: focus,
+      focusArea: focusArea,
       isSinglePlayer: isSinglePlayer,
     );
     final sessionId = await _db.insertGameSession(_currentSession!);
@@ -123,7 +122,7 @@ class GameState extends ChangeNotifier {
       player1Id: player1!.id!,
       player2Id: player2?.id,
       targetScore: target,
-      focusArea: focus,
+      focusArea: focusArea,
       isSinglePlayer: isSinglePlayer,
     );
 
@@ -238,14 +237,14 @@ class GameState extends ChangeNotifier {
       ps.eliminationDone = true;
     }
 
-    // Check if both done
+    // Check if all players are done - show result first, don't auto-advance
     final otherPs = playerIdx == 0 ? p2State : p1State;
     if (isSinglePlayer) {
       if (ps.eliminationDone) {
-        _resolveElimination();
+        roundComplete = true;
       }
     } else if (ps.eliminationDone && otherPs.eliminationDone) {
-      _resolveElimination();
+      roundComplete = true;
     }
 
     notifyListeners();
@@ -274,7 +273,11 @@ class GameState extends ChangeNotifier {
   /// Confirm and resolve the current round. Called when user taps "NEXT".
   void confirmRound() {
     if (!roundComplete && currentChallenge!.type != ChallengeType.closest) return;
-    _resolveRound();
+    if (currentChallenge!.type == ChallengeType.elimination) {
+      _resolveElimination();
+    } else {
+      _resolveRound();
+    }
   }
 
   void _resolveRound() {
@@ -375,7 +378,11 @@ class GameState extends ChangeNotifier {
     if (p1Hit) {
       p1State.hits++;
       p1State.streak++;
-      _audio.hit();
+      if (p1State.streak >= 3) {
+        _audio.streak();
+      } else {
+        _audio.hit();
+      }
     } else {
       p1State.streak = 0;
       if (p1Points == 0) _audio.miss();
