@@ -190,6 +190,15 @@ class _GameScreenState extends State<GameScreen>
                   card: game.activeChaosCard!,
                   onDismiss: () => game.dismissChaosCard(),
                 ),
+
+              // Category picker overlay (redemption card)
+              if (game.showingCategoryPicker)
+                _CategoryPickerOverlay(
+                  playerName: game.redemptionPlayerIdx == 0
+                      ? (game.player1?.name ?? 'P1')
+                      : (game.player2?.name ?? 'P2'),
+                  onPick: (category) => game.pickCategory(category),
+                ),
             ],
           ),
         );
@@ -613,6 +622,141 @@ class _ChaosCardOverlayState extends State<_ChaosCardOverlay>
                     ],
                   ),
                 ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Category Picker Overlay (Redemption card) ──
+
+class _CategoryPickerOverlay extends StatefulWidget {
+  final String playerName;
+  final void Function(ChallengeCategory) onPick;
+
+  const _CategoryPickerOverlay({required this.playerName, required this.onPick});
+
+  @override
+  State<_CategoryPickerOverlay> createState() => _CategoryPickerOverlayState();
+}
+
+class _CategoryPickerOverlayState extends State<_CategoryPickerOverlay>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _entry;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _entry = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _fadeAnim = CurvedAnimation(parent: _entry, curve: Curves.easeOut);
+    _entry.forward();
+  }
+
+  @override
+  void dispose() {
+    _entry.dispose();
+    super.dispose();
+  }
+
+  static const _categories = [
+    (ChallengeCategory.precision, 'PRECISION', Icons.gps_fixed, AppColors.catPrecision),
+    (ChallengeCategory.scoring, 'SCORING', Icons.scoreboard, AppColors.catScoring),
+    (ChallengeCategory.finish, 'FINISH', Icons.flag, AppColors.catFinish),
+    (ChallengeCategory.battle, 'BATTLE', Icons.sports_mma, AppColors.catBattle),
+    (ChallengeCategory.special, 'SPECIAL', Icons.star, AppColors.catSpecial),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _fadeAnim,
+      builder: (_, __) => Container(
+        color: Colors.black.withAlpha((_fadeAnim.value * 200).toInt()),
+        child: Center(
+          child: Opacity(
+            opacity: _fadeAnim.value,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [AppColors.card, AppColors.surface],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.chaosGold.withAlpha(120), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.chaosGold.withAlpha(40),
+                    blurRadius: 30,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'REDEMPTION',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.chaosGold,
+                      letterSpacing: 3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${widget.playerName}, pick a category!',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ...List.generate(_categories.length, (i) {
+                    final (category, label, icon, color) = _categories[i];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: GestureDetector(
+                        onTap: () => widget.onPick(category),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: color.withAlpha(30),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: color.withAlpha(100)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(icon, color: color, size: 22),
+                              const SizedBox(width: 12),
+                              Text(
+                                label,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: color,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
               ),
             ),
           ),

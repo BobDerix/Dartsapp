@@ -326,6 +326,33 @@ class ChallengeService {
     );
   }
 
+  /// Get challenges filtered by category (for redemption card).
+  List<Challenge> getChallengesForCategory({
+    required ChallengeCategory category,
+    required bool isTwoPlayer,
+    Challenge? lastChallenge,
+  }) {
+    final pool = _staticChallenges.where((c) => c.category == category).toList();
+
+    // Filter out types that don't work in single-player
+    if (!isTwoPlayer) {
+      pool.removeWhere(
+        (c) => c.type == ChallengeType.bestScore ||
+            c.type == ChallengeType.closest ||
+            c.type == ChallengeType.elimination ||
+            c.type == ChallengeType.auction ||
+            c.type == ChallengeType.progressive,
+      );
+    }
+
+    // Avoid repeating last challenge
+    if (lastChallenge != null && pool.length > 1) {
+      pool.removeWhere((c) => c.text == lastChallenge.text);
+    }
+
+    return pool;
+  }
+
   /// Dart board segment names for roulette display.
   static const boardSegments = [
     20, 1, 18, 4, 13, 6, 10, 15, 2, 17,

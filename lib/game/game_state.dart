@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import '../models/player.dart';
 import '../models/challenge.dart';
@@ -90,6 +91,8 @@ class GameState extends ChangeNotifier {
   // Chaos card state
   ChaosCard? activeChaosCard;
   bool showingChaosCard = false; // true during the reveal animation
+  bool showingCategoryPicker = false; // true when redemption card lets trailing player pick
+  int? redemptionPlayerIdx; // 0=p1, 1=p2 (who picks)
 
   // Commentary state
   String? commentaryText; // current commentary text to display
@@ -313,6 +316,40 @@ class GameState extends ChangeNotifier {
   /// Dismiss chaos card reveal and continue.
   void dismissChaosCard() {
     showingChaosCard = false;
+
+    // If redemption card, show category picker for trailing player
+    if (activeChaosCard?.type == ChaosCardType.redemption && !isSinglePlayer) {
+      if (p1State.score <= p2State.score) {
+        redemptionPlayerIdx = 0; // P1 is trailing (or tied)
+      } else {
+        redemptionPlayerIdx = 1;
+      }
+      showingCategoryPicker = true;
+    }
+
+    notifyListeners();
+  }
+
+  /// Trailing player picks a category (redemption card).
+  void pickCategory(ChallengeCategory category) {
+    showingCategoryPicker = false;
+    redemptionPlayerIdx = null;
+
+    // Generate a challenge from this category
+    final pool = _challengeService.getChallengesForCategory(
+      category: category,
+      isTwoPlayer: !isSinglePlayer,
+      lastChallenge: currentChallenge,
+    );
+    if (pool.isNotEmpty) {
+      currentChallenge = pool[Random().nextInt(pool.length)];
+      // Set elimination lives if needed
+      if (currentChallenge!.type == ChallengeType.elimination) {
+        p1State.eliminationLives = currentChallenge!.subRounds;
+        p2State.eliminationLives = currentChallenge!.subRounds;
+      }
+    }
+
     notifyListeners();
   }
 
@@ -448,10 +485,13 @@ class GameState extends ChangeNotifier {
     // Check if both players have bid
     if (p1State.auctionBid != null && p2State.auctionBid != null) {
       // Lower bid wins (fewer darts = more confident)
-      if (p1State.auctionBid! <= p2State.auctionBid!) {
+      if (p1State.auctionBid! < p2State.auctionBid!) {
         auctionWinnerIdx = 0;
-      } else {
+      } else if (p2State.auctionBid! < p1State.auctionBid!) {
         auctionWinnerIdx = 1;
+      } else {
+        // Same bid: random tiebreaker
+        auctionWinnerIdx = Random().nextBool() ? 0 : 1;
       }
       auctionPhase = AuctionPhase.executing;
     }
