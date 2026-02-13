@@ -12,11 +12,11 @@ class ChallengeService {
   final List<Challenge> _staticChallenges = const [
     // ── PRECISION (Hit/Miss) ──
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🐂', text: 'Hit Bull (25 or 50)', difficulty: 3),
-    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🎯', text: 'Hit Double Bull (50)', difficulty: 5),
+    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🎯', text: 'Hit Double Bull (50)', difficulty: 4),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🔝', text: 'Hit Tops (Double 20)', difficulty: 3),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '👇', text: 'Hit D3 (Bottom of the board)', difficulty: 3),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🧱', text: 'Hit D14 (The Mensur)', difficulty: 3),
-    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🍜', text: 'Shanghai! (S, T, D of same number)', difficulty: 5),
+    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🍜', text: 'Shanghai! (S, T, D of same number)', difficulty: 4),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '2️⃣', text: 'All 3 darts in EVEN numbers', difficulty: 2),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '1️⃣', text: 'All 3 darts in ODD numbers', difficulty: 2),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🎪', text: 'Hit 3 different doubles', difficulty: 4),
@@ -28,15 +28,13 @@ class ChallengeService {
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🟡', text: 'Hit the outer Bull (25)', difficulty: 4),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '⬅️', text: 'Left side only! (1-10 half)', difficulty: 3),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '📐', text: 'All 3 darts in the big singles', difficulty: 2),
-    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🎰', text: 'Hit S20, D20 and T20', difficulty: 5),
+    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🎰', text: 'Hit S20, D20 and T20', difficulty: 4),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🔄', text: 'Around the board: hit 3 different areas (top, left, right)', difficulty: 2),
 
     // ── NEW PRECISION: Darts culture classics (G) ──
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '💄', text: 'The Lipstick! Hit T20, T18 or T19', difficulty: 3),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🏝️', text: 'The Coast! Round the board: hit as many consecutive numbers from 1 upward in 3 darts', difficulty: 3),
-    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🏠', text: 'Madhouse! Check out on D1 (the hardest double)', difficulty: 5),
-    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '👑', text: 'The Crown! Hit T20 with all 3 darts', difficulty: 5),
-    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🗼', text: 'The Tower! Hit T19 with all 3 darts', difficulty: 5),
+    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🏠', text: 'Madhouse! Check out on D1', difficulty: 4),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🛤️', text: 'The Railway! All 3 darts between the two wires of a double', difficulty: 4),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🪶', text: 'Feather Touch! All 3 darts in the thin inner single', difficulty: 3),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🍀', text: 'Lucky 7s! Hit S7, D7 or T7', difficulty: 3),
@@ -48,7 +46,7 @@ class ChallengeService {
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.threshold, emoji: '📈', text: 'Score 100+', targetValue: 100, difficulty: 3),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.threshold, emoji: '📈', text: 'Score 120+', targetValue: 120, difficulty: 4),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.threshold, emoji: '📈', text: 'Score 140+', targetValue: 140, difficulty: 4),
-    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🔥', text: '180! Hit T20 T20 T20', difficulty: 5),
+    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🔥', text: '180! Hit T20 T20 T20', difficulty: 4),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🧱', text: 'No 1s or 5s allowed', difficulty: 2),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🚫', text: 'Score under 20 (low is hard!)', difficulty: 3),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🥐', text: 'Score exactly 26 (Breakfast!)', difficulty: 3),
@@ -65,24 +63,20 @@ class ChallengeService {
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.bestScore, emoji: '🏹', text: 'Trebles only: highest score wins!', difficulty: 4),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.bestScore, emoji: '🎰', text: 'Doubles only: highest score wins!', difficulty: 3),
 
-    // ── FINISH (Countdown/Hit-Miss) ──
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🍺', text: 'Checkout 138 (Deller!)', targetValue: 138, difficulty: 5),
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🐅', text: 'Checkout 156 (Barneveld!)', targetValue: 156, difficulty: 5),
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🐟', text: 'Checkout 170 (Big Fish!)', targetValue: 170, difficulty: 5),
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🎯', text: 'Checkout 32 (Double 16)', targetValue: 32, difficulty: 2),
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🎯', text: 'Checkout 40 (Double 20)', targetValue: 40, difficulty: 2),
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🏁', text: 'Checkout 80', targetValue: 80, difficulty: 3),
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🏁', text: 'Checkout 100', targetValue: 100, difficulty: 4),
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🥫', text: 'Checkout 57 (Heinz!)', targetValue: 57, difficulty: 3),
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🎯', text: 'Checkout 50 (Bullseye finish!)', targetValue: 50, difficulty: 3),
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '2️⃣', text: 'Checkout 24 (2 Dozen)', targetValue: 24, difficulty: 2),
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '💯', text: 'Checkout 120', targetValue: 120, difficulty: 4),
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🐍', text: 'Checkout 167 (T20, T19, Bull)', targetValue: 167, difficulty: 5),
+    // ── FINISH (Hit/Miss) ──
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '🎯', text: 'Checkout 32 (Double 16)', difficulty: 2),
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '🎯', text: 'Checkout 40 (Double 20)', difficulty: 2),
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '🏁', text: 'Checkout 80', difficulty: 3),
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '🏁', text: 'Checkout 100', difficulty: 4),
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '🥫', text: 'Checkout 57 (Heinz!)', difficulty: 3),
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '🎯', text: 'Checkout 50 (Bullseye finish!)', difficulty: 3),
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '2️⃣', text: 'Checkout 24 (2 Dozen)', difficulty: 2),
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '💯', text: 'Checkout 120', difficulty: 4),
 
-    // ── NEW FINISH: Darts culture (G) ──
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🇳🇱', text: 'Checkout 84 (The Barney!)', targetValue: 84, difficulty: 3),
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', text: 'Checkout 96 (The Bristow!)', targetValue: 96, difficulty: 3),
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.countdown, emoji: '🎭', text: 'Checkout 110 (T20, Bull)', targetValue: 110, difficulty: 4),
+    // ── FINISH: Darts culture ──
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '🇳🇱', text: 'Checkout 84 (The Barney!)', difficulty: 3),
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', text: 'Checkout 96 (The Bristow!)', difficulty: 3),
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '🎭', text: 'Checkout 110 (T20, Bull)', difficulty: 4),
 
     // ── BATTLE (Closest / Judge) ──
     Challenge(category: ChallengeCategory.battle, type: ChallengeType.closest, emoji: '🎯', text: 'Closest to the Bull!', difficulty: 3),
@@ -109,7 +103,7 @@ class ChallengeService {
     Challenge(category: ChallengeCategory.special, type: ChallengeType.elimination, emoji: '🫣', text: 'Hit any number > 10 (5 lives)', subRounds: 5, difficulty: 2),
     Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '🤚', text: 'Weak hand throw! Score with non-dominant hand', difficulty: 3),
     Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '🙈', text: 'Eyes closed! Throw 1 dart blind - hit the board', difficulty: 2),
-    Challenge(category: ChallengeCategory.special, type: ChallengeType.elimination, emoji: '🪙', text: 'Hit T20 (3 lives)', subRounds: 3, difficulty: 5),
+    Challenge(category: ChallengeCategory.special, type: ChallengeType.elimination, emoji: '🪙', text: 'Hit T20 (3 lives)', subRounds: 3, difficulty: 4),
 
     // ── NEW SPECIAL: Timer challenges (F - timer pressure) ──
     Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '⏱️', text: 'SPEED ROUND! 3 darts in 10 seconds - score 40+!', difficulty: 3, hasTimer: true, timerSeconds: 10),
@@ -133,14 +127,13 @@ class ChallengeService {
     return num;
   }
 
-  /// Generate a roulette challenge with a random segment.
+  /// Generate a roulette challenge. The spinner determines the number.
   Challenge _generateRoulette() {
-    final seg = _segments[_random.nextInt(_segments.length)];
     final options = [
-      'Hit Single $seg!',
-      'Hit Double $seg!',
-      'Hit Triple $seg!',
-      'Hit any $seg!',
+      'Gooi de single van dit nummer!',
+      'Gooi de double van dit nummer!',
+      'Gooi de triple van dit nummer!',
+      'Raak dit nummer!',
     ];
     final difficulties = [2, 3, 4, 2];
     final idx = _random.nextInt(options.length);
@@ -261,11 +254,10 @@ class ChallengeService {
     final co = _randomCheckout();
     pool.add(Challenge(
       category: ChallengeCategory.finish,
-      type: ChallengeType.countdown,
+      type: ChallengeType.hitMiss,
       emoji: '🏁',
       text: 'Checkout $co',
-      targetValue: co,
-      difficulty: co > 100 ? 5 : co > 60 ? 4 : co > 30 ? 3 : 2,
+      difficulty: co > 100 ? 4 : co > 60 ? 3 : 2,
     ));
 
     if (pool.isEmpty) {

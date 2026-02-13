@@ -180,8 +180,15 @@ class GameState extends ChangeNotifier {
     if (_history.length > _maxHistory) _history.removeAt(0);
   }
 
-  /// Undo the last completed round.
+  /// Undo the last input step, or restore the previous round if no inputs.
   void undo() {
+    // First try to clear current round inputs
+    if (_undoCurrentInput()) {
+      notifyListeners();
+      return;
+    }
+
+    // No current input to undo — restore previous round
     if (_history.isEmpty) return;
     final prev = jsonDecode(_history.removeLast()) as Map<String, dynamic>;
     p1State.fromJson(prev['p1'] as Map<String, dynamic>);
@@ -195,8 +202,99 @@ class GameState extends ChangeNotifier {
     showingChaosCard = false;
     commentaryText = null;
     showCommentary = false;
-    // Re-generate a challenge (can't restore exact previous one, but close enough)
     nextChallenge(isUndo: true);
+  }
+
+  /// Try to undo the most recent input on the current challenge.
+  /// Returns true if something was undone.
+  bool _undoCurrentInput() {
+    final type = currentChallenge?.type;
+    if (type == null) return false;
+
+    switch (type) {
+      case ChallengeType.hitMiss:
+        if (!isSinglePlayer && p2State.hitMissChoice != null) {
+          p2State.hitMissChoice = null;
+          roundComplete = false;
+          return true;
+        } else if (p1State.hitMissChoice != null) {
+          p1State.hitMissChoice = null;
+          roundComplete = false;
+          return true;
+        }
+        return false;
+
+      case ChallengeType.threshold:
+        if (!isSinglePlayer && p2State.scoreEntry != null) {
+          p2State.scoreEntry = null;
+          roundComplete = false;
+          return true;
+        } else if (p1State.scoreEntry != null) {
+          p1State.scoreEntry = null;
+          roundComplete = false;
+          return true;
+        }
+        return false;
+
+      case ChallengeType.bestScore:
+      case ChallengeType.closest:
+        if (judgeWinner != null) {
+          judgeWinner = null;
+          roundComplete = false;
+          return true;
+        }
+        return false;
+
+      case ChallengeType.elimination:
+        final maxLives = currentChallenge?.subRounds ?? 3;
+        final p1HasInput = p1State.eliminationHits > 0 || p1State.eliminationLives < maxLives;
+        final p2HasInput = !isSinglePlayer && (p2State.eliminationHits > 0 || p2State.eliminationLives < maxLives);
+        if (p1HasInput || p2HasInput) {
+          p1State.eliminationLives = maxLives;
+          p1State.eliminationHits = 0;
+          p1State.eliminationDone = false;
+          p2State.eliminationLives = maxLives;
+          p2State.eliminationHits = 0;
+          p2State.eliminationDone = false;
+          roundComplete = false;
+          return true;
+        }
+        return false;
+
+      case ChallengeType.auction:
+        if (auctionPhase == AuctionPhase.executing) {
+          final winnerPs = auctionWinnerIdx == 0 ? p1State : p2State;
+          if (winnerPs.hitMissChoice != null) {
+            winnerPs.hitMissChoice = null;
+            roundComplete = false;
+            return true;
+          }
+        }
+        if (p1State.auctionBid != null || p2State.auctionBid != null) {
+          p1State.auctionBid = null;
+          p2State.auctionBid = null;
+          auctionPhase = AuctionPhase.bidding;
+          auctionWinnerIdx = null;
+          roundComplete = false;
+          return true;
+        }
+        return false;
+
+      case ChallengeType.progressive:
+        if (p2State.scoreEntry != null) {
+          p2State.scoreEntry = null;
+          progressiveResolved = false;
+          roundComplete = false;
+          progressiveTurn = 1;
+          return true;
+        } else if (p1State.scoreEntry != null) {
+          p1State.scoreEntry = null;
+          progressiveTarget = 0;
+          progressiveTurn = 0;
+          return true;
+        }
+        return false;
+    }
   }
 
   /// Show a commentary message that auto-hides.
@@ -276,7 +374,7 @@ class GameState extends ChangeNotifier {
 
   // ── Input Handlers ──
 
-  /// Handle hit/miss input for a player (type: hitMiss, countdown).
+  /// Handle hit/miss input for a player (type: hitMiss).
   void setHitMiss(int playerIdx, bool isHit) {
     if (roundComplete) return;
     final ps = playerIdx == 0 ? p1State : p2State;
@@ -401,7 +499,7 @@ class GameState extends ChangeNotifier {
   void _checkRoundReady() {
     final type = currentChallenge!.type;
 
-    if (type == ChallengeType.hitMiss || type == ChallengeType.countdown) {
+    if (type == ChallengeType.hitMiss) {
       final p1Ready = p1State.hitMissChoice != null;
       final p2Ready = isSinglePlayer || p2State.hitMissChoice != null;
       if (p1Ready && p2Ready) {
@@ -443,7 +541,6 @@ class GameState extends ChangeNotifier {
 
     switch (type) {
       case ChallengeType.hitMiss:
-      case ChallengeType.countdown:
         p1Hit = p1State.hitMissChoice == true;
         p2Hit = !isSinglePlayer && p2State.hitMissChoice == true;
         if (p1Hit) p1Points = 1;
@@ -653,7 +750,7 @@ class GameState extends ChangeNotifier {
     }
 
     // Checkout commentary
-    if (currentChallenge?.type == ChallengeType.countdown && (p1Hit || p2Hit)) {
+    if (currentChallenge?.category == ChallengeCategory.finish && (p1Hit || p2Hit)) {
       _showCommentary(_commentary.onCheckout(currentChallenge?.targetValue ?? 0));
       return;
     }
@@ -825,5 +922,26 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool get canUndo => _history.isNotEmpty;
+  bool get canUndo {
+    if (_history.isNotEmpty) return true;
+    final type = currentChallenge?.type;
+    if (type == null) return false;
+    switch (type) {
+      case ChallengeType.hitMiss:
+        return p1State.hitMissChoice != null || (!isSinglePlayer && p2State.hitMissChoice != null);
+      case ChallengeType.threshold:
+        return p1State.scoreEntry != null || (!isSinglePlayer && p2State.scoreEntry != null);
+      case ChallengeType.bestScore:
+      case ChallengeType.closest:
+        return judgeWinner != null;
+      case ChallengeType.elimination:
+        final maxLives = currentChallenge?.subRounds ?? 3;
+        return p1State.eliminationHits > 0 || p1State.eliminationLives < maxLives ||
+            (!isSinglePlayer && (p2State.eliminationHits > 0 || p2State.eliminationLives < maxLives));
+      case ChallengeType.auction:
+        return p1State.auctionBid != null || p2State.auctionBid != null;
+      case ChallengeType.progressive:
+        return p1State.scoreEntry != null || p2State.scoreEntry != null;
+    }
+  }
 }

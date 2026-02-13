@@ -28,9 +28,6 @@ enum ChallengeType {
   /// Enter a score. Meet or exceed threshold = 1 point.
   threshold,
 
-  /// Check out a specific number. Success = 1 point.
-  countdown,
-
   /// Multiple sub-rounds. Most hits out of N rounds = 1 point.
   elimination,
 
@@ -45,7 +42,6 @@ enum ChallengeType {
     bestScore => 'best_score',
     closest => 'closest',
     threshold => 'threshold',
-    countdown => 'countdown',
     elimination => 'elimination',
     auction => 'auction',
     progressive => 'progressive',
@@ -56,7 +52,7 @@ enum ChallengeType {
     'best_score' => bestScore,
     'closest' => closest,
     'threshold' => threshold,
-    'countdown' => countdown,
+    'countdown' => hitMiss,
     'elimination' => elimination,
     'auction' => auction,
     'progressive' => progressive,
