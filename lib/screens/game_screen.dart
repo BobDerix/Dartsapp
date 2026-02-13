@@ -1407,7 +1407,6 @@ class _ControlArea extends StatelessWidget {
   Widget _buildInputControls(BuildContext context, Challenge challenge) {
     switch (challenge.type) {
       case ChallengeType.hitMiss:
-      case ChallengeType.countdown:
         return _HitMissControls(game: game);
 
       case ChallengeType.bestScore:
@@ -2178,7 +2177,7 @@ class _EliminationControls extends StatelessWidget {
   }
 }
 
-class _EliminationPlayerRow extends StatelessWidget {
+class _EliminationPlayerRow extends StatefulWidget {
   final String label;
   final Color labelColor;
   final int lives;
@@ -2200,7 +2199,70 @@ class _EliminationPlayerRow extends StatelessWidget {
   });
 
   @override
+  State<_EliminationPlayerRow> createState() => _EliminationPlayerRowState();
+}
+
+class _EliminationPlayerRowState extends State<_EliminationPlayerRow>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _flashController;
+  late Animation<double> _flashAnim;
+  bool _lastWasHit = false;
+  int _prevHits = 0;
+  int _prevLives = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _prevHits = widget.hits;
+    _prevLives = widget.lives;
+    _flashController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _flashAnim = CurvedAnimation(parent: _flashController, curve: Curves.easeOut);
+  }
+
+  @override
+  void didUpdateWidget(_EliminationPlayerRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.hits > _prevHits) {
+      _lastWasHit = true;
+      _flashController.forward(from: 0);
+    } else if (widget.lives < _prevLives) {
+      _lastWasHit = false;
+      _flashController.forward(from: 0);
+    }
+    _prevHits = widget.hits;
+    _prevLives = widget.lives;
+  }
+
+  @override
+  void dispose() {
+    _flashController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _flashAnim,
+      builder: (context, child) {
+        final flashColor = _lastWasHit
+            ? AppColors.hit.withAlpha((80 * (1 - _flashAnim.value)).round())
+            : AppColors.miss.withAlpha((80 * (1 - _flashAnim.value)).round());
+        return Container(
+          decoration: BoxDecoration(
+            color: _flashController.isAnimating ? flashColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+          child: _buildContent(),
+        );
+      },
+    );
+  }
+
+  Widget _buildContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2208,37 +2270,45 @@ class _EliminationPlayerRow extends StatelessWidget {
           children: [
             SizedBox(
               width: 80,
-              child: Text(label,
+              child: Text(widget.label,
                   style: TextStyle(
-                      fontWeight: FontWeight.w700, color: labelColor)),
+                      fontWeight: FontWeight.w700, color: widget.labelColor)),
             ),
             // Lives display
-            ...List.generate(maxLives, (i) {
+            ...List.generate(widget.maxLives, (i) {
               return Padding(
                 padding: const EdgeInsets.only(right: 4),
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: Icon(
-                    i < lives ? Icons.favorite : Icons.favorite_border,
-                    key: ValueKey('$label-life-$i-${i < lives}'),
-                    color: i < lives ? AppColors.miss : Colors.white24,
+                    i < widget.lives ? Icons.favorite : Icons.favorite_border,
+                    key: ValueKey('${widget.label}-life-$i-${i < widget.lives}'),
+                    color: i < widget.lives ? AppColors.miss : Colors.white24,
                     size: 20,
                   ),
                 ),
               );
             }),
             const Spacer(),
-            Text(
-              '$hits hits',
-              style: const TextStyle(
-                  color: AppColors.hit,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, animation) => ScaleTransition(
+                scale: animation,
+                child: child,
+              ),
+              child: Text(
+                '${widget.hits} hits',
+                key: ValueKey('hits-${widget.hits}'),
+                style: const TextStyle(
+                    color: AppColors.hit,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12),
+              ),
             ),
           ],
         ),
         const SizedBox(height: 6),
-        if (!isDone)
+        if (!widget.isDone)
           Row(
             children: [
               const SizedBox(width: 80),
@@ -2248,7 +2318,7 @@ class _EliminationPlayerRow extends StatelessWidget {
                   isActive: false,
                   activeColor: AppColors.hit,
                   isLocked: false,
-                  onTap: onHit,
+                  onTap: widget.onHit,
                 ),
               ),
               const SizedBox(width: 8),
@@ -2258,7 +2328,7 @@ class _EliminationPlayerRow extends StatelessWidget {
                   isActive: false,
                   activeColor: AppColors.miss,
                   isLocked: false,
-                  onTap: onMiss,
+                  onTap: widget.onMiss,
                 ),
               ),
             ],
@@ -2271,20 +2341,20 @@ class _EliminationPlayerRow extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
-                    color: lives > 0
+                    color: widget.lives > 0
                         ? AppColors.hit.withAlpha(51)
                         : AppColors.miss.withAlpha(51),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: lives > 0 ? AppColors.hit : AppColors.miss,
+                      color: widget.lives > 0 ? AppColors.hit : AppColors.miss,
                     ),
                   ),
                   child: Text(
-                    lives > 0 ? 'SURVIVED ($hits hits)' : 'ELIMINATED',
+                    widget.lives > 0 ? 'SURVIVED (${widget.hits} hits)' : 'ELIMINATED',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: lives > 0 ? AppColors.hit : AppColors.miss,
+                      color: widget.lives > 0 ? AppColors.hit : AppColors.miss,
                     ),
                   ),
                 ),
