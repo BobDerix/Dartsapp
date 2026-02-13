@@ -94,11 +94,11 @@ class _GameScreenState extends State<GameScreen>
                         cos(_bgAnim.value * 2 * pi) * 0.5,
                         sin(_bgAnim.value * 2 * pi) * -0.5,
                       ),
-                      colors: const [
-                        Color(0xFF0A0A12),
-                        Color(0xFF111122),
-                        Color(0xFF0A0A12),
-                        Color(0xFF121218),
+                      colors: [
+                        AppColors.background,
+                        AppColors.background.withBlue(25),
+                        AppColors.background,
+                        AppColors.commentaryBg,
                       ],
                     ),
                   ),
@@ -1101,7 +1101,7 @@ class _ChallengeDisplayState extends State<_ChallengeDisplay>
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF111111),
+                        color: AppColors.background,
                         letterSpacing: 1,
                       ),
                     ),
@@ -1312,8 +1312,8 @@ class _RouletteSpinnerState extends State<_RouletteSpinner>
             shape: BoxShape.circle,
             gradient: RadialGradient(
               colors: [
-                isDone ? AppColors.catBattle : const Color(0xFF2C3E50),
-                const Color(0xFF1A1A1A),
+                isDone ? AppColors.catBattle : AppColors.card,
+                AppColors.surface,
               ],
             ),
             border: Border.all(
@@ -1372,7 +1372,7 @@ class _ControlArea extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF1A1A22), Color(0xFF15151D)],
+          colors: [AppColors.card, AppColors.surface],
         ),
         border: Border(
           top: BorderSide(
@@ -1708,7 +1708,7 @@ class _ActionButtonState extends State<_ActionButton>
                     end: Alignment.bottomRight,
                   )
                 : null,
-            color: widget.isActive ? null : const Color(0xFF2C3E50),
+            color: widget.isActive ? null : AppColors.card,
             borderRadius: BorderRadius.circular(12),
             boxShadow: widget.isActive
                 ? [
@@ -1974,7 +1974,7 @@ class _BestScoreControls extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF555555),
+              color: AppColors.cardBorder,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(
@@ -2124,7 +2124,7 @@ class _JudgeControls extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF555555),
+              color: AppColors.cardBorder,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(

@@ -184,13 +184,13 @@ class _ToggleRow extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.player1 : const Color(0xFF333333),
+                  color: isSelected ? AppColors.cyan : AppColors.card,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isSelected ? AppColors.player1 : const Color(0xFF444444),
+                    color: isSelected ? AppColors.cyan : AppColors.cardBorder,
                   ),
                   boxShadow: isSelected
-                      ? [BoxShadow(color: AppColors.player1.withAlpha(102), blurRadius: 15)]
+                      ? [BoxShadow(color: AppColors.cyan.withAlpha(80), blurRadius: 15)]
                       : null,
                 ),
                 child: Text(
@@ -200,7 +200,7 @@ class _ToggleRow extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isSelected ? Colors.white : const Color(0xFFAAAAAA),
+                    color: isSelected ? Colors.white : AppColors.textSecondary,
                   ),
                 ),
               ),

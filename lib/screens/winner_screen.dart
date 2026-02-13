@@ -57,9 +57,16 @@ class _WinnerScreenState extends State<WinnerScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(28),
                       decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(26),
+                        color: AppColors.card,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withAlpha(51)),
+                        border: Border.all(color: AppColors.gold.withAlpha(80)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.gold.withAlpha(20),
+                            blurRadius: 24,
+                            spreadRadius: 2,
+                          ),
+                        ],
                       ),
                       child: Column(
                         children: [
@@ -143,7 +150,7 @@ class _WinnerScreenState extends State<WinnerScreen> {
                           Navigator.of(context).popUntil((route) => route.isFirst);
                         },
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF444444)),
+                          side: const BorderSide(color: AppColors.cardBorder),
                           foregroundColor: AppColors.textSecondary,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
