@@ -58,4 +58,55 @@ class WebAudio implements PlatformAudio {
       _tone(988, 0.15, vol: 0.2);
     });
   }
+
+  @override
+  void chaosCard() {
+    // Dramatic low rumble + rising tone
+    _tone(150, 0.3, type: 'sawtooth', vol: 0.15);
+    Future.delayed(const Duration(milliseconds: 200), () {
+      _tone(300, 0.2, type: 'square', vol: 0.12);
+    });
+    Future.delayed(const Duration(milliseconds: 350), () {
+      _tone(600, 0.15, vol: 0.18);
+    });
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _tone(900, 0.1, vol: 0.15);
+    });
+  }
+
+  @override
+  void timerTick() {
+    _tone(1000, 0.05, type: 'square', vol: 0.08);
+  }
+
+  @override
+  void timerEnd() {
+    _tone(200, 0.4, type: 'sawtooth', vol: 0.2);
+    Future.delayed(const Duration(milliseconds: 150), () {
+      _tone(150, 0.3, type: 'sawtooth', vol: 0.15);
+    });
+  }
+
+  @override
+  void rouletteSpin() {
+    _tone(440, 0.06, vol: 0.1);
+  }
+
+  @override
+  void bigScore() {
+    // Crowd-like celebration: rising fanfare
+    _tone(440, 0.1, vol: 0.15);
+    Future.delayed(const Duration(milliseconds: 80), () {
+      _tone(554, 0.1, vol: 0.18);
+    });
+    Future.delayed(const Duration(milliseconds: 160), () {
+      _tone(659, 0.1, vol: 0.2);
+    });
+    Future.delayed(const Duration(milliseconds: 240), () {
+      _tone(880, 0.2, vol: 0.25);
+    });
+    Future.delayed(const Duration(milliseconds: 400), () {
+      _tone(1175, 0.25, vol: 0.2);
+    });
+  }
 }

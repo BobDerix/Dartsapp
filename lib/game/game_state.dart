@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/player.dart';
 import '../models/challenge.dart';
+import '../models/chaos_card.dart';
 import '../models/game_session.dart';
 import '../models/challenge_result.dart';
 import '../database/database_helper.dart';
 import '../services/challenge_service.dart';
+import '../services/chaos_card_service.dart';
+import '../services/commentary_service.dart';
 import '../services/audio_service.dart';
 
 /// Per-player in-game state (not persisted directly).
@@ -22,12 +25,22 @@ class PlayerState {
   int eliminationHits = 0;
   bool eliminationDone = false;
 
+  // Auction state
+  int? auctionBid; // number of darts bid (1-6)
+
+  // Progressive state
+  int progressiveRound = 0; // which sub-round we're on
+  bool progressiveFailed = false; // has this player failed?
+
   void reset() {
     hitMissChoice = null;
     scoreEntry = null;
     eliminationLives = 3;
     eliminationHits = 0;
     eliminationDone = false;
+    auctionBid = null;
+    progressiveRound = 0;
+    progressiveFailed = false;
   }
 
   Map<String, dynamic> toJson() => {
@@ -47,10 +60,15 @@ class PlayerState {
 
 enum GamePhase { setup, playing, finished }
 
+/// Auction sub-phases.
+enum AuctionPhase { bidding, executing }
+
 /// Controls all game logic. Used with Provider.
 class GameState extends ChangeNotifier {
   final DatabaseHelper _db = DatabaseHelper();
   final ChallengeService _challengeService = ChallengeService();
+  final ChaosCardService _chaosCardService = ChaosCardService();
+  final CommentaryService _commentary = CommentaryService();
   final AudioService _audio = AudioService();
 
   // Game config
@@ -68,6 +86,23 @@ class GameState extends ChangeNotifier {
   int roundNumber = 0;
   int? judgeWinner; // 0=p1, 1=p2, null=not decided (for closest type)
   bool roundComplete = false;
+
+  // Chaos card state
+  ChaosCard? activeChaosCard;
+  bool showingChaosCard = false; // true during the reveal animation
+
+  // Commentary state
+  String? commentaryText; // current commentary text to display
+  bool showCommentary = false;
+
+  // Auction state
+  AuctionPhase auctionPhase = AuctionPhase.bidding;
+  int? auctionWinnerIdx; // 0=p1, 1=p2
+
+  // Progressive state
+  int progressiveTarget = 0; // current target to beat
+  int progressiveTurn = 0; // 0=p1's turn, 1=p2's turn
+  bool progressiveResolved = false;
 
   // DB tracking
   GameSession? _currentSession;
@@ -105,8 +140,13 @@ class GameState extends ChangeNotifier {
     p2State = PlayerState();
     roundNumber = 0;
     winner = null;
+    activeChaosCard = null;
+    showingChaosCard = false;
+    commentaryText = null;
+    showCommentary = false;
     _history.clear();
     _pendingResults.clear();
+    _chaosCardService.reset();
 
     // Create DB session
     _currentSession = GameSession(
@@ -151,8 +191,31 @@ class GameState extends ChangeNotifier {
     p1State.reset();
     p2State.reset();
     judgeWinner = null;
+    activeChaosCard = null;
+    showingChaosCard = false;
+    commentaryText = null;
+    showCommentary = false;
     // Re-generate a challenge (can't restore exact previous one, but close enough)
     nextChallenge(isUndo: true);
+  }
+
+  /// Show a commentary message that auto-hides.
+  void _showCommentary(String text) {
+    commentaryText = text;
+    showCommentary = true;
+    notifyListeners();
+    Future.delayed(const Duration(seconds: 3), () {
+      if (commentaryText == text) {
+        showCommentary = false;
+        notifyListeners();
+      }
+    });
+  }
+
+  /// Dismiss chaos card reveal and continue.
+  void dismissChaosCard() {
+    showingChaosCard = false;
+    notifyListeners();
   }
 
   /// Generate next challenge.
@@ -163,6 +226,11 @@ class GameState extends ChangeNotifier {
     }
     judgeWinner = null;
     roundComplete = false;
+    auctionPhase = AuctionPhase.bidding;
+    auctionWinnerIdx = null;
+    progressiveTarget = 0;
+    progressiveTurn = 0;
+    progressiveResolved = false;
 
     if (forceSuddenDeath) {
       currentChallenge = _challengeService.suddenDeath();
@@ -181,6 +249,28 @@ class GameState extends ChangeNotifier {
     }
 
     roundNumber++;
+
+    // Check for chaos card (not on undo, not on sudden death)
+    if (!isUndo && !forceSuddenDeath) {
+      activeChaosCard = _chaosCardService.maybeDrawCard(
+        roundNumber: roundNumber,
+        isTwoPlayer: !isSinglePlayer,
+      );
+      if (activeChaosCard != null) {
+        showingChaosCard = true;
+        _audio.chaosCard();
+      }
+    } else if (isUndo) {
+      activeChaosCard = null;
+    }
+
+    // Occasional commentary on round start
+    if (!isUndo && activeChaosCard == null && roundNumber > 1) {
+      if (roundNumber % 5 == 0) {
+        _showCommentary(_commentary.onRoundStart());
+      }
+    }
+
     notifyListeners();
   }
 
@@ -250,6 +340,64 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Handle auction bid.
+  void setAuctionBid(int playerIdx, int bid) {
+    if (auctionPhase != AuctionPhase.bidding) return;
+    final ps = playerIdx == 0 ? p1State : p2State;
+    ps.auctionBid = bid;
+    _audio.tap();
+
+    // Check if both players have bid
+    if (p1State.auctionBid != null && p2State.auctionBid != null) {
+      // Lower bid wins (fewer darts = more confident)
+      if (p1State.auctionBid! <= p2State.auctionBid!) {
+        auctionWinnerIdx = 0;
+      } else {
+        auctionWinnerIdx = 1;
+      }
+      auctionPhase = AuctionPhase.executing;
+    }
+    notifyListeners();
+  }
+
+  /// Handle auction execution result (hit/miss by the bidding winner).
+  void setAuctionResult(bool isHit) {
+    if (auctionPhase != AuctionPhase.executing) return;
+    final winnerPs = auctionWinnerIdx == 0 ? p1State : p2State;
+    winnerPs.hitMissChoice = isHit;
+    roundComplete = true;
+    notifyListeners();
+  }
+
+  /// Handle progressive score entry.
+  void setProgressiveScore(int playerIdx, int score) {
+    if (progressiveResolved) return;
+    final ps = playerIdx == 0 ? p1State : p2State;
+
+    if (progressiveTurn == 0 && playerIdx == 0 && p1State.scoreEntry == null) {
+      // P1's first throw
+      ps.scoreEntry = score;
+      progressiveTarget = score;
+      progressiveTurn = 1;
+      _audio.tap();
+      notifyListeners();
+    } else if (progressiveTurn == 1 && playerIdx == 1 && p2State.scoreEntry == null) {
+      // P2 must beat P1's score
+      ps.scoreEntry = score;
+      if (score > progressiveTarget) {
+        // P2 beats it -> P2 wins
+        progressiveResolved = true;
+        roundComplete = true;
+      } else {
+        // P2 fails -> P1 wins
+        progressiveResolved = true;
+        roundComplete = true;
+      }
+      _audio.tap();
+      notifyListeners();
+    }
+  }
+
   void _checkRoundReady() {
     final type = currentChallenge!.type;
 
@@ -275,6 +423,10 @@ class GameState extends ChangeNotifier {
     if (!roundComplete && currentChallenge!.type != ChallengeType.closest) return;
     if (currentChallenge!.type == ChallengeType.elimination) {
       _resolveElimination();
+    } else if (currentChallenge!.type == ChallengeType.auction) {
+      _resolveAuction();
+    } else if (currentChallenge!.type == ChallengeType.progressive) {
+      _resolveProgressive();
     } else {
       _resolveRound();
     }
@@ -330,9 +482,52 @@ class GameState extends ChangeNotifier {
         break;
 
       case ChallengeType.elimination:
-        // Handled by _resolveElimination
+      case ChallengeType.auction:
+      case ChallengeType.progressive:
+        // Handled by their own methods
         return;
     }
+
+    // Apply chaos card modifiers
+    if (activeChaosCard != null) {
+      final card = activeChaosCard!;
+      final calc = _chaosCardService.calculatePoints(
+        activeCard: card,
+        isHit: p1Hit,
+        isBidWinner: true,
+      );
+      if (p1Hit) {
+        p1Points = calc.hitPts;
+      } else {
+        p1Points = calc.missPts;
+      }
+
+      if (!isSinglePlayer) {
+        final calc2 = _chaosCardService.calculatePoints(
+          activeCard: card,
+          isHit: p2Hit,
+          isBidWinner: true,
+        );
+        if (p2Hit) {
+          p2Points = calc2.hitPts;
+        } else {
+          p2Points = calc2.missPts;
+        }
+
+        // Steal mechanic
+        if (card.type == ChaosCardType.steal) {
+          if (p1Hit && calc.stealPts > 0) {
+            p2Points -= calc.stealPts;
+          }
+          if (p2Hit && calc2.stealPts > 0) {
+            p1Points -= calc2.stealPts;
+          }
+        }
+      }
+    }
+
+    // Commentary based on results
+    _generateCommentary(p1Hit, p2Hit);
 
     _applyPoints(p1Points, p2Points, p1Hit, p2Hit);
   }
@@ -369,11 +564,114 @@ class GameState extends ChangeNotifier {
       }
     }
 
+    _generateCommentary(p1Hit, p2Hit);
     _applyPoints(p1Points, p2Points, p1Hit, p2Hit);
+  }
+
+  void _resolveAuction() {
+    _saveHistory();
+
+    int p1Points = 0;
+    int p2Points = 0;
+    bool p1Hit = false;
+    bool p2Hit = false;
+
+    final winnerIdx = auctionWinnerIdx ?? 0;
+    final winnerPs = winnerIdx == 0 ? p1State : p2State;
+    final loserIdx = winnerIdx == 0 ? 1 : 0;
+    final isHit = winnerPs.hitMissChoice == true;
+
+    if (isHit) {
+      // Bidder succeeded: 2 points
+      if (winnerIdx == 0) {
+        p1Points = 2;
+        p1Hit = true;
+      } else {
+        p2Points = 2;
+        p2Hit = true;
+      }
+      _showCommentary(_commentary.onCheckout(currentChallenge?.targetValue ?? 0));
+    } else {
+      // Bidder failed: opponent gets 1 point
+      if (loserIdx == 0) {
+        p1Points = 1;
+        p1Hit = true;
+      } else {
+        p2Points = 1;
+        p2Hit = true;
+      }
+      _showCommentary(_commentary.onMiss());
+    }
+
+    _applyPoints(p1Points, p2Points, p1Hit, p2Hit);
+  }
+
+  void _resolveProgressive() {
+    _saveHistory();
+
+    int p1Points = 0;
+    int p2Points = 0;
+    bool p1Hit = false;
+    bool p2Hit = false;
+
+    final s1 = p1State.scoreEntry ?? 0;
+    final s2 = p2State.scoreEntry ?? 0;
+
+    if (s2 > s1) {
+      // P2 beat P1's score
+      p2Points = 1;
+      p2Hit = true;
+    } else {
+      // P2 couldn't beat it
+      p1Points = 1;
+      p1Hit = true;
+    }
+
+    _generateCommentary(p1Hit, p2Hit);
+    _applyPoints(p1Points, p2Points, p1Hit, p2Hit);
+  }
+
+  void _generateCommentary(bool p1Hit, bool p2Hit) {
+    // Score-specific commentary
+    if (currentChallenge?.type == ChallengeType.bestScore ||
+        currentChallenge?.type == ChallengeType.threshold) {
+      final score = p1State.scoreEntry ?? p2State.scoreEntry ?? 0;
+      final scoreComment = _commentary.onScore(score);
+      if (scoreComment != null) {
+        _showCommentary(scoreComment);
+        if (score >= 140) _audio.bigScore();
+        return;
+      }
+    }
+
+    // Streak commentary
+    if (p1Hit && p1State.streak >= 2) {
+      _showCommentary(_commentary.onStreak(p1State.streak + 1));
+      return;
+    }
+    if (p2Hit && p2State.streak >= 2) {
+      _showCommentary(_commentary.onStreak(p2State.streak + 1));
+      return;
+    }
+
+    // Checkout commentary
+    if (currentChallenge?.type == ChallengeType.countdown && (p1Hit || p2Hit)) {
+      _showCommentary(_commentary.onCheckout(currentChallenge?.targetValue ?? 0));
+      return;
+    }
+
+    // General hit/miss
+    if (p1Hit || p2Hit) {
+      _showCommentary(_commentary.onHit());
+    } else {
+      _showCommentary(_commentary.onMiss());
+    }
   }
 
   void _applyPoints(int p1Points, int p2Points, bool p1Hit, bool p2Hit) {
     p1State.score += p1Points;
+    // Prevent negative scores
+    if (p1State.score < 0) p1State.score = 0;
     p1State.attempts++;
     if (p1Hit) {
       p1State.hits++;
@@ -390,6 +688,7 @@ class GameState extends ChangeNotifier {
 
     if (!isSinglePlayer) {
       p2State.score += p2Points;
+      if (p2State.score < 0) p2State.score = 0;
       p2State.attempts++;
       if (p2Hit) {
         p2State.hits++;
@@ -426,6 +725,9 @@ class GameState extends ChangeNotifier {
         ));
       }
     }
+
+    // Clear chaos card after resolution
+    activeChaosCard = null;
 
     // Check for win
     _checkWin();
