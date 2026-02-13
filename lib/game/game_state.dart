@@ -408,7 +408,7 @@ class GameState extends ChangeNotifier {
         roundComplete = true;
         notifyListeners();
       }
-    } else if (type == ChallengeType.bestScore || type == ChallengeType.threshold) {
+    } else if (type == ChallengeType.threshold) {
       final p1Ready = p1State.scoreEntry != null;
       final p2Ready = isSinglePlayer || p2State.scoreEntry != null;
       if (p1Ready && p2Ready) {
@@ -459,16 +459,14 @@ class GameState extends ChangeNotifier {
         break;
 
       case ChallengeType.bestScore:
-        final s1 = p1State.scoreEntry ?? 0;
-        final s2 = p2State.scoreEntry ?? 0;
-        if (s1 > s2) {
+        // Tap-based: judge picks the winner
+        if (judgeWinner == 0) {
           p1Points = 1;
           p1Hit = true;
-        } else if (s2 > s1) {
+        } else if (judgeWinner == 1) {
           p2Points = 1;
           p2Hit = true;
         }
-        // Tie = no points
         break;
 
       case ChallengeType.closest:

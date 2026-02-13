@@ -16,18 +16,25 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen>
+    with SingleTickerProviderStateMixin {
   late ConfettiController _confetti;
+  late AnimationController _bgAnim;
 
   @override
   void initState() {
     super.initState();
     _confetti = ConfettiController(duration: const Duration(seconds: 2));
+    _bgAnim = AnimationController(
+      duration: const Duration(seconds: 8),
+      vsync: this,
+    )..repeat();
   }
 
   @override
   void dispose() {
     _confetti.dispose();
+    _bgAnim.dispose();
     super.dispose();
   }
 
@@ -73,20 +80,63 @@ class _GameScreenState extends State<GameScreen> {
         return Scaffold(
           body: Stack(
             children: [
+              // Animated background
+              AnimatedBuilder(
+                animation: _bgAnim,
+                builder: (_, __) => Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment(
+                        sin(_bgAnim.value * 2 * pi) * 0.5,
+                        cos(_bgAnim.value * 2 * pi) * 0.5,
+                      ),
+                      end: Alignment(
+                        cos(_bgAnim.value * 2 * pi) * 0.5,
+                        sin(_bgAnim.value * 2 * pi) * -0.5,
+                      ),
+                      colors: [
+                        AppColors.background,
+                        AppColors.background.withBlue(25),
+                        AppColors.background,
+                        AppColors.commentaryBg,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
               Column(
                 children: [
                   // Header
                   _GameHeader(
                     onQuit: _onQuit,
                     onUndo: game.canUndo ? () => game.undo() : null,
+                    roundNumber: game.roundNumber,
                   ),
 
                   // Scoreboard
                   _Scoreboard(game: game),
 
                   // Commentary banner
-                  if (game.showCommentary && game.commentaryText != null)
-                    _CommentaryBanner(text: game.commentaryText!),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 400),
+                    transitionBuilder: (child, anim) => SlideTransition(
+                      position: Tween(
+                        begin: const Offset(0, -1),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                        parent: anim,
+                        curve: Curves.easeOutBack,
+                      )),
+                      child: FadeTransition(opacity: anim, child: child),
+                    ),
+                    child: game.showCommentary && game.commentaryText != null
+                        ? _CommentaryBanner(
+                            key: ValueKey(game.commentaryText),
+                            text: game.commentaryText!,
+                          )
+                        : const SizedBox.shrink(key: ValueKey('no_comment')),
+                  ),
 
                   // Chaos card indicator (when active but dismissed)
                   if (game.activeChaosCard != null && !game.showingChaosCard)
@@ -94,11 +144,15 @@ class _GameScreenState extends State<GameScreen> {
 
                   // Challenge display
                   Expanded(
-                    child: _ChallengeDisplay(challenge: game.currentChallenge),
+                    child: _ChallengeDisplay(
+                      challenge: game.currentChallenge,
+                      key: ValueKey('challenge_${game.roundNumber}'),
+                    ),
                   ),
 
                   // Timer widget (for timer challenges)
-                  if (game.currentChallenge?.hasTimer == true && !game.roundComplete)
+                  if (game.currentChallenge?.hasTimer == true &&
+                      !game.roundComplete)
                     _TimerWidget(
                       seconds: game.currentChallenge!.timerSeconds,
                       key: ValueKey('timer_${game.roundNumber}'),
@@ -149,8 +203,9 @@ class _GameScreenState extends State<GameScreen> {
 class _GameHeader extends StatelessWidget {
   final VoidCallback onQuit;
   final VoidCallback? onUndo;
+  final int roundNumber;
 
-  const _GameHeader({required this.onQuit, this.onUndo});
+  const _GameHeader({required this.onQuit, this.onUndo, required this.roundNumber});
 
   @override
   Widget build(BuildContext context) {
@@ -159,9 +214,32 @@ class _GameHeader extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _HeaderButton(icon: Icons.close, onTap: onQuit),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.neutral.withAlpha(60),
+                    AppColors.neutral.withAlpha(30),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.neutral.withAlpha(80)),
+              ),
+              child: Text(
+                'ROUND $roundNumber',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.neutral,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ),
+            const Spacer(),
             _HeaderButton(
               icon: Icons.undo,
               label: 'Undo',
@@ -194,7 +272,9 @@ class _HeaderButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: onTap != null ? Colors.white70 : Colors.white24, size: 18),
+            Icon(icon,
+                color: onTap != null ? Colors.white70 : Colors.white24,
+                size: 18),
             if (label != null) ...[
               const SizedBox(width: 4),
               Text(
@@ -215,32 +295,77 @@ class _HeaderButton extends StatelessWidget {
 
 // ── Commentary Banner ──
 
-class _CommentaryBanner extends StatelessWidget {
+class _CommentaryBanner extends StatefulWidget {
   final String text;
-  const _CommentaryBanner({required this.text});
+  const _CommentaryBanner({super.key, required this.text});
+
+  @override
+  State<_CommentaryBanner> createState() => _CommentaryBannerState();
+}
+
+class _CommentaryBannerState extends State<_CommentaryBanner>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _shimmer;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmer = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _shimmer.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.commentaryBg, Color(0xFF16213E)],
+    return AnimatedBuilder(
+      animation: _shimmer,
+      builder: (_, __) => Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.commentaryBg,
+              Color.lerp(
+                    const Color(0xFF16213E),
+                    const Color(0xFF2A1A4E),
+                    (sin(_shimmer.value * 2 * pi) + 1) / 2,
+                  ) ??
+                  const Color(0xFF16213E),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: AppColors.chaosGold.withAlpha(
+              (77 + 50 * sin(_shimmer.value * 2 * pi)).toInt(),
+            ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.chaosGold.withAlpha(30),
+              blurRadius: 12,
+              spreadRadius: 1,
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.chaosGold.withAlpha(77)),
-      ),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
-          color: AppColors.chaosGold,
-          fontStyle: FontStyle.italic,
-          letterSpacing: 0.5,
+        child: Text(
+          widget.text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: AppColors.chaosGold,
+            fontStyle: FontStyle.italic,
+            letterSpacing: 0.5,
+          ),
         ),
       ),
     );
@@ -249,48 +374,88 @@ class _CommentaryBanner extends StatelessWidget {
 
 // ── Chaos Card Indicator (small pill when active) ──
 
-class _ChaosCardIndicator extends StatelessWidget {
+class _ChaosCardIndicator extends StatefulWidget {
   final ChaosCard card;
   const _ChaosCardIndicator({required this.card});
 
   @override
+  State<_ChaosCardIndicator> createState() => _ChaosCardIndicatorState();
+}
+
+class _ChaosCardIndicatorState extends State<_ChaosCardIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.chaosBackground, Color(0xFF330066)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.chaosBorder, width: 1.5),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(card.emoji, style: const TextStyle(fontSize: 16)),
-          const SizedBox(width: 6),
-          Text(
-            card.name,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: AppColors.chaosGold,
-              letterSpacing: 1,
-            ),
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (_, __) => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.chaosBackground, Color(0xFF330066)],
           ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              card.description,
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.white.withAlpha(178),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppColors.chaosBorder.withAlpha(
+              (150 + 105 * _pulse.value).toInt(),
+            ),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.chaosBorder.withAlpha(
+                (20 + 40 * _pulse.value).toInt(),
               ),
-              overflow: TextOverflow.ellipsis,
+              blurRadius: 8,
+              spreadRadius: 1,
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(widget.card.emoji, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 6),
+            Text(
+              widget.card.name,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: AppColors.chaosGold,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                widget.card.description,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.white.withAlpha(178),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -308,25 +473,177 @@ class _ChaosCardOverlay extends StatefulWidget {
 }
 
 class _ChaosCardOverlayState extends State<_ChaosCardOverlay>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
+  late AnimationController _shimmer;
   late Animation<double> _scaleAnim;
   late Animation<double> _opacityAnim;
+  late Animation<double> _rotateAnim;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    _scaleAnim = Tween(begin: 0.3, end: 1.0).animate(
+    _shimmer = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat();
+    _scaleAnim = Tween(begin: 0.1, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
     );
     _opacityAnim = Tween(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeIn),
     );
+    _rotateAnim = Tween(begin: -0.1, end: 0.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
+    );
     _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _shimmer.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_controller, _shimmer]),
+      builder: (_, __) => GestureDetector(
+        onTap: widget.onDismiss,
+        child: Container(
+          color: Colors.black.withAlpha((_opacityAnim.value * 220).toInt()),
+          child: Center(
+            child: Transform.scale(
+              scale: _scaleAnim.value,
+              child: Transform.rotate(
+                angle: _rotateAnim.value,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 32),
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment(
+                        sin(_shimmer.value * 2 * pi) * 0.5,
+                        cos(_shimmer.value * 2 * pi) * 0.5,
+                      ),
+                      end: Alignment.bottomRight,
+                      colors: const [
+                        AppColors.chaosBackground,
+                        Color(0xFF330066),
+                        Color(0xFF1A004D),
+                        AppColors.chaosBackground,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: AppColors.chaosBorder.withAlpha(
+                        (180 + 75 * sin(_shimmer.value * 2 * pi)).toInt(),
+                      ),
+                      width: 3,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.chaosBorder.withAlpha(
+                          (80 + 60 * sin(_shimmer.value * 2 * pi)).toInt(),
+                        ),
+                        blurRadius: 40,
+                        spreadRadius: 8,
+                      ),
+                      BoxShadow(
+                        color: AppColors.chaosGold.withAlpha(40),
+                        blurRadius: 60,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'CHAOS CARD',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.chaosBorder,
+                          letterSpacing: 3,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        widget.card.emoji,
+                        style: const TextStyle(fontSize: 72),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        widget.card.name,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.chaosGold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        widget.card.description,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white.withAlpha(204),
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _PulsingText(
+                        text: 'TAP TO CONTINUE',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withAlpha(140),
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Pulsing Text Helper ──
+
+class _PulsingText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+  const _PulsingText({required this.text, required this.style});
+
+  @override
+  State<_PulsingText> createState() => _PulsingTextState();
+}
+
+class _PulsingTextState extends State<_PulsingText>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    )..repeat(reverse: true);
   }
 
   @override
@@ -339,90 +656,9 @@ class _ChaosCardOverlayState extends State<_ChaosCardOverlay>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (_, __) => GestureDetector(
-        onTap: widget.onDismiss,
-        child: Container(
-          color: Colors.black.withAlpha((_opacityAnim.value * 200).toInt()),
-          child: Center(
-            child: Transform.scale(
-              scale: _scaleAnim.value,
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 32),
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.chaosBackground,
-                      Color(0xFF330066),
-                      AppColors.chaosBackground,
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppColors.chaosBorder, width: 3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.chaosBorder.withAlpha(100),
-                      blurRadius: 30,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'CHAOS CARD',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.chaosBorder,
-                        letterSpacing: 3,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      widget.card.emoji,
-                      style: const TextStyle(fontSize: 72),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      widget.card.name,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.chaosGold,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      widget.card.description,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white.withAlpha(204),
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'TAP TO CONTINUE',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white.withAlpha(102),
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
+      builder: (_, __) => Opacity(
+        opacity: 0.4 + 0.6 * _controller.value,
+        child: Text(widget.text, style: widget.style),
       ),
     );
   }
@@ -438,17 +674,26 @@ class _TimerWidget extends StatefulWidget {
   State<_TimerWidget> createState() => _TimerWidgetState();
 }
 
-class _TimerWidgetState extends State<_TimerWidget> {
+class _TimerWidgetState extends State<_TimerWidget>
+    with SingleTickerProviderStateMixin {
   late int _remaining;
   Timer? _timer;
+  late AnimationController _pulse;
 
   @override
   void initState() {
     super.initState();
     _remaining = widget.seconds;
+    _pulse = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remaining > 0) {
         setState(() => _remaining--);
+        if (_remaining <= 5) {
+          _pulse.forward().then((_) => _pulse.reverse());
+        }
       } else {
         timer.cancel();
       }
@@ -458,6 +703,7 @@ class _TimerWidgetState extends State<_TimerWidget> {
   @override
   void dispose() {
     _timer?.cancel();
+    _pulse.dispose();
     super.dispose();
   }
 
@@ -466,51 +712,75 @@ class _TimerWidgetState extends State<_TimerWidget> {
     final isWarning = _remaining <= 5;
     final progress = _remaining / widget.seconds;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (_, __) {
+        final scale = isWarning ? 1.0 + _pulse.value * 0.15 : 1.0;
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          child: Column(
             children: [
-              Icon(
-                Icons.timer,
-                color: isWarning ? AppColors.timerWarning : AppColors.timerNormal,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '$_remaining',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: isWarning ? AppColors.timerWarning : AppColors.timerNormal,
+              Transform.scale(
+                scale: scale,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.timer,
+                      color: isWarning
+                          ? AppColors.timerWarning
+                          : AppColors.timerNormal,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$_remaining',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: isWarning
+                            ? AppColors.timerWarning
+                            : AppColors.timerNormal,
+                        shadows: isWarning
+                            ? [
+                                Shadow(
+                                  color:
+                                      AppColors.timerWarning.withAlpha(150),
+                                  blurRadius: 12,
+                                ),
+                              ]
+                            : null,
+                      ),
+                    ),
+                    const Text(
+                      's',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Text(
-                's',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
+              const SizedBox(height: 4),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: Colors.white.withAlpha(26),
+                  valueColor: AlwaysStoppedAnimation(
+                    isWarning
+                        ? AppColors.timerWarning
+                        : AppColors.timerNormal,
+                  ),
+                  minHeight: 4,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: Colors.white.withAlpha(26),
-              valueColor: AlwaysStoppedAnimation(
-                isWarning ? AppColors.timerWarning : AppColors.timerNormal,
-              ),
-              minHeight: 4,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -531,99 +801,216 @@ class _Scoreboard extends StatelessWidget {
             child: _PlayerCard(
               name: game.player1?.name ?? 'P1',
               score: game.p1State.score,
+              targetScore: game.targetScore,
               hitRate: game.p1HitRate,
               streak: game.p1State.streak,
               color: AppColors.player1,
-              isActive: true,
             ),
           ),
-          const SizedBox(width: 12),
-          if (!game.isSinglePlayer)
+          // VS divider
+          if (!game.isSinglePlayer) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withAlpha(15),
+                      border: Border.all(color: Colors.white.withAlpha(30)),
+                    ),
+                    child: const Text(
+                      'VS',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white38,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               child: _PlayerCard(
                 name: game.player2?.name ?? 'P2',
                 score: game.p2State.score,
+                targetScore: game.targetScore,
                 hitRate: game.p2HitRate,
                 streak: game.p2State.streak,
                 color: AppColors.player2,
-                isActive: true,
               ),
             ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _PlayerCard extends StatelessWidget {
+class _PlayerCard extends StatefulWidget {
   final String name;
   final int score;
+  final int targetScore;
   final double hitRate;
   final int streak;
   final Color color;
-  final bool isActive;
 
   const _PlayerCard({
     required this.name,
     required this.score,
+    required this.targetScore,
     required this.hitRate,
     required this.streak,
     required this.color,
-    required this.isActive,
   });
 
   @override
+  State<_PlayerCard> createState() => _PlayerCardState();
+}
+
+class _PlayerCardState extends State<_PlayerCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _glow;
+
+  @override
+  void initState() {
+    super.initState();
+    _glow = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _glow.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card.withAlpha(242),
-        borderRadius: BorderRadius.circular(16),
-        border: Border(top: BorderSide(color: color, width: 4)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withAlpha(77), blurRadius: 20, offset: const Offset(0, 8)),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            name,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Colors.white.withAlpha(204),
-              letterSpacing: 1,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          Text(
-            '$score',
-            style: TextStyle(
-              fontSize: 48,
-              fontWeight: FontWeight.w800,
-              color: color,
-              height: 1.1,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${(hitRate * 100).round()}% Hit',
-                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
-              ),
-              AnimatedOpacity(
-                opacity: streak >= 3 ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 300),
-                child: Text(
-                  '🔥 $streak',
-                  style: TextStyle(fontSize: 11, color: AppColors.player2, fontWeight: FontWeight.w600),
-                ),
-              ),
+    final progress = widget.targetScore > 0
+        ? (widget.score / widget.targetScore).clamp(0.0, 1.0)
+        : 0.0;
+
+    return AnimatedBuilder(
+      animation: _glow,
+      builder: (_, __) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.card.withAlpha(250),
+              Color.lerp(AppColors.card, widget.color, 0.08)!,
             ],
           ),
-        ],
+          borderRadius: BorderRadius.circular(16),
+          border: Border(
+            top: BorderSide(
+              color: widget.color.withAlpha(
+                (180 + 75 * _glow.value).toInt(),
+              ),
+              width: 4,
+            ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: widget.color.withAlpha(
+                (15 + 25 * _glow.value).toInt(),
+              ),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+            BoxShadow(
+              color: Colors.black.withAlpha(77),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Text(
+              widget.name,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withAlpha(204),
+                letterSpacing: 1,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+            TweenAnimationBuilder<int>(
+              tween: IntTween(begin: 0, end: widget.score),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOut,
+              builder: (_, value, __) => Text(
+                '$value',
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.w800,
+                  color: widget.color,
+                  height: 1.1,
+                  shadows: [
+                    Shadow(
+                      color: widget.color.withAlpha(80),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            // Progress bar toward target
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: progress,
+                backgroundColor: Colors.white.withAlpha(20),
+                valueColor: AlwaysStoppedAnimation(widget.color.withAlpha(150)),
+                minHeight: 3,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${(widget.hitRate * 100).round()}%',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (widget.streak >= 3)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFF6B00), Color(0xFFFF0000)],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${widget.streak}x',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -631,103 +1018,192 @@ class _PlayerCard extends StatelessWidget {
 
 // ── Challenge Display ──
 
-class _ChallengeDisplay extends StatelessWidget {
+class _ChallengeDisplay extends StatefulWidget {
   final Challenge? challenge;
-  const _ChallengeDisplay({this.challenge});
+  const _ChallengeDisplay({super.key, this.challenge});
+
+  @override
+  State<_ChallengeDisplay> createState() => _ChallengeDisplayState();
+}
+
+class _ChallengeDisplayState extends State<_ChallengeDisplay>
+    with TickerProviderStateMixin {
+  late AnimationController _entry;
+  late AnimationController _bounce;
+  late Animation<double> _entryScale;
+  late Animation<double> _entryFade;
+
+  @override
+  void initState() {
+    super.initState();
+    _entry = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _bounce = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+    _entryScale = Tween(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _entry, curve: Curves.easeOutBack),
+    );
+    _entryFade = Tween(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entry, curve: Curves.easeOut),
+    );
+    _entry.forward();
+  }
+
+  @override
+  void dispose() {
+    _entry.dispose();
+    _bounce.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (challenge == null) {
+    if (widget.challenge == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Category pill
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.categoryColor(challenge!.category.displayName),
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: Text(
-                challenge!.category.displayName,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF111111),
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Roulette spinner or emoji
-            if (challenge!.isRoulette)
-              _RouletteSpinner(key: ValueKey('roulette_${challenge!.text}'))
-            else
-              Text(
-                challenge!.emoji,
-                style: const TextStyle(fontSize: 64),
-              ),
-            const SizedBox(height: 12),
-
-            // Challenge text
-            Text(
-              challenge!.text,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-                height: 1.2,
-              ),
-            ),
-
-            // Difficulty dots
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (i) {
-                return Container(
-                  width: 8,
-                  height: 8,
-                  margin: const EdgeInsets.symmetric(horizontal: 2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: i < challenge!.difficulty
-                        ? AppColors.catFinish
-                        : Colors.white.withAlpha(51),
-                  ),
-                );
-              }),
-            ),
-
-            // Timer/roulette badges
-            if (challenge!.hasTimer || challenge!.isRoulette) ...[
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+    return AnimatedBuilder(
+      animation: Listenable.merge([_entry, _bounce]),
+      builder: (_, __) => Opacity(
+        opacity: _entryFade.value,
+        child: Transform.scale(
+          scale: _entryScale.value,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (challenge!.hasTimer)
-                    _ChallengeBadge(
-                      icon: Icons.timer,
-                      label: '${challenge!.timerSeconds}s',
-                      color: AppColors.timerWarning,
+                  // Category pill with glow
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.categoryColor(
+                          widget.challenge!.category.displayName),
+                      borderRadius: BorderRadius.circular(50),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.categoryColor(
+                                  widget.challenge!.category.displayName)
+                              .withAlpha(80),
+                          blurRadius: 10,
+                          spreadRadius: 1,
+                        ),
+                      ],
                     ),
-                  if (challenge!.isRoulette)
-                    const _ChallengeBadge(
-                      icon: Icons.casino,
-                      label: 'ROULETTE',
-                      color: AppColors.catBattle,
+                    child: Text(
+                      widget.challenge!.category.displayName,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.background,
+                        letterSpacing: 1,
+                      ),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Roulette spinner or emoji with bounce
+                  if (widget.challenge!.isRoulette)
+                    _RouletteSpinner(
+                        key: ValueKey('roulette_${widget.challenge!.text}'))
+                  else
+                    Transform.translate(
+                      offset: Offset(0, sin(_bounce.value * pi) * 4),
+                      child: Text(
+                        widget.challenge!.emoji,
+                        style: const TextStyle(fontSize: 64),
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+
+                  // Challenge text with shimmer
+                  ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      colors: const [
+                        Colors.white,
+                        Color(0xFFCCCCCC),
+                        Colors.white,
+                      ],
+                      stops: [
+                        (_bounce.value - 0.3).clamp(0.0, 1.0),
+                        _bounce.value.clamp(0.0, 1.0),
+                        (_bounce.value + 0.3).clamp(0.0, 1.0),
+                      ],
+                    ).createShader(bounds),
+                    child: Text(
+                      widget.challenge!.text,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+
+                  // Difficulty dots
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (i) {
+                      final isFilled = i < widget.challenge!.difficulty;
+                      return AnimatedContainer(
+                        duration: Duration(milliseconds: 300 + i * 100),
+                        width: isFilled ? 10 : 8,
+                        height: isFilled ? 10 : 8,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isFilled
+                              ? AppColors.catFinish
+                              : Colors.white.withAlpha(51),
+                          boxShadow: isFilled
+                              ? [
+                                  BoxShadow(
+                                    color:
+                                        AppColors.catFinish.withAlpha(80),
+                                    blurRadius: 4,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                      );
+                    }),
+                  ),
+
+                  // Timer/roulette badges
+                  if (widget.challenge!.hasTimer ||
+                      widget.challenge!.isRoulette) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (widget.challenge!.hasTimer)
+                          _ChallengeBadge(
+                            icon: Icons.timer,
+                            label: '${widget.challenge!.timerSeconds}s',
+                            color: AppColors.timerWarning,
+                          ),
+                        if (widget.challenge!.isRoulette)
+                          const _ChallengeBadge(
+                            icon: Icons.casino,
+                            label: 'ROULETTE',
+                            color: AppColors.catBattle,
+                          ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
-            ],
-          ],
+            ),
+          ),
         ),
       ),
     );
@@ -824,7 +1300,8 @@ class _RouletteSpinnerState extends State<_RouletteSpinner>
       builder: (_, __) {
         // Show cycling numbers during animation
         final totalCycles = 20 + _displaySegment; // spin past at least 20
-        final currentIdx = (_rotation.value * totalCycles).floor() % _segments.length;
+        final currentIdx =
+            (_rotation.value * totalCycles).floor() % _segments.length;
         final number = _segments[currentIdx];
         final isDone = _rotation.value >= 0.98;
 
@@ -835,8 +1312,8 @@ class _RouletteSpinnerState extends State<_RouletteSpinner>
             shape: BoxShape.circle,
             gradient: RadialGradient(
               colors: [
-                isDone ? AppColors.catBattle : const Color(0xFF2C3E50),
-                const Color(0xFF1A1A1A),
+                isDone ? AppColors.catBattle : AppColors.card,
+                AppColors.surface,
               ],
             ),
             border: Border.all(
@@ -844,7 +1321,15 @@ class _RouletteSpinnerState extends State<_RouletteSpinner>
               width: 3,
             ),
             boxShadow: isDone
-                ? [BoxShadow(color: AppColors.catBattle.withAlpha(100), blurRadius: 20)]
+                ? [
+                    BoxShadow(
+                        color: AppColors.catBattle.withAlpha(100),
+                        blurRadius: 20),
+                    BoxShadow(
+                        color: AppColors.chaosGold.withAlpha(60),
+                        blurRadius: 30,
+                        spreadRadius: 5),
+                  ]
                 : null,
           ),
           child: Center(
@@ -854,6 +1339,12 @@ class _RouletteSpinnerState extends State<_RouletteSpinner>
                 fontSize: isDone ? 42 : 36,
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
+                shadows: isDone
+                    ? [
+                        const Shadow(
+                            color: Colors.white24, blurRadius: 10),
+                      ]
+                    : null,
               ),
             ),
           ),
@@ -877,9 +1368,24 @@ class _ControlArea extends StatelessWidget {
     if (challenge == null) return const SizedBox.shrink();
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF222222),
-        border: Border(top: BorderSide(color: Color(0xFF333333))),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AppColors.card, AppColors.surface],
+        ),
+        border: Border(
+          top: BorderSide(
+            color: Colors.white.withAlpha(20),
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(80),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
@@ -905,6 +1411,8 @@ class _ControlArea extends StatelessWidget {
         return _HitMissControls(game: game);
 
       case ChallengeType.bestScore:
+        return _BestScoreControls(game: game);
+
       case ChallengeType.threshold:
         return _ScoreEntryControls(game: game);
 
@@ -924,7 +1432,8 @@ class _ControlArea extends StatelessWidget {
 
   Widget _buildNextButton(BuildContext context) {
     final isReady = game.roundComplete;
-    final isJudge = game.currentChallenge?.type == ChallengeType.closest;
+    final isJudge = game.currentChallenge?.type == ChallengeType.closest ||
+        game.currentChallenge?.type == ChallengeType.bestScore;
 
     // Judge resolves itself
     if (isJudge) return const SizedBox.shrink();
@@ -937,18 +1446,99 @@ class _ControlArea extends StatelessWidget {
         duration: const Duration(milliseconds: 300),
         child: SizedBox(
           width: double.infinity,
-          child: ElevatedButton(
-            onPressed: isReady
+          child: _GlowButton(
+            label: 'NEXT CHALLENGE  \u27A1',
+            color: AppColors.neutral,
+            onTap: isReady
                 ? () {
                     onConfetti();
                     game.confirmRound();
                   }
                 : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.neutral,
-              disabledBackgroundColor: AppColors.neutral.withAlpha(77),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Glow Button ──
+
+class _GlowButton extends StatefulWidget {
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const _GlowButton({
+    required this.label,
+    required this.color,
+    this.onTap,
+  });
+
+  @override
+  State<_GlowButton> createState() => _GlowButtonState();
+}
+
+class _GlowButtonState extends State<_GlowButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _glow;
+
+  @override
+  void initState() {
+    super.initState();
+    _glow = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _glow.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _glow,
+      builder: (_, __) => GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                widget.color,
+                Color.lerp(widget.color, Colors.white, 0.15)!,
+                widget.color,
+              ],
+              stops: [
+                0.0,
+                _glow.value,
+                1.0,
+              ],
             ),
-            child: const Text('NEXT CHALLENGE  ➡'),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withAlpha(
+                  (60 + 60 * _glow.value).toInt(),
+                ),
+                blurRadius: 16,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Text(
+            widget.label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: 1,
+            ),
           ),
         ),
       ),
@@ -1108,15 +1698,24 @@ class _ActionButtonState extends State<_ActionButton>
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: widget.isActive
-                ? widget.activeColor
-                : const Color(0xFF2C3E50),
+            gradient: widget.isActive
+                ? LinearGradient(
+                    colors: [
+                      widget.activeColor,
+                      Color.lerp(widget.activeColor, Colors.white, 0.15)!,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: widget.isActive ? null : AppColors.card,
             borderRadius: BorderRadius.circular(12),
             boxShadow: widget.isActive
                 ? [
                     BoxShadow(
-                        color: widget.activeColor.withAlpha(102),
-                        blurRadius: 10)
+                        color: widget.activeColor.withAlpha(120),
+                        blurRadius: 12,
+                        spreadRadius: 1),
                   ]
                 : null,
           ),
@@ -1257,7 +1856,9 @@ class _ScoreEntryRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 80,
-            child: Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: labelColor)),
+            child: Text(label,
+                style: TextStyle(
+                    fontWeight: FontWeight.w700, color: labelColor)),
           ),
           Expanded(
             child: Container(
@@ -1296,7 +1897,9 @@ class _ScoreEntryRow extends StatelessWidget {
       children: [
         SizedBox(
           width: 80,
-          child: Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: labelColor)),
+          child: Text(label,
+              style:
+                  TextStyle(fontWeight: FontWeight.w700, color: labelColor)),
         ),
         Expanded(
           child: TextField(
@@ -1305,7 +1908,9 @@ class _ScoreEntryRow extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             decoration: InputDecoration(
-              hintText: isThreshold ? 'Score (target: $target, max 180)' : 'Enter score (max 180)',
+              hintText: isThreshold
+                  ? 'Score (target: $target, max 180)'
+                  : 'Enter score (max 180)',
             ),
             onSubmitted: (_) => onSubmit(),
           ),
@@ -1323,6 +1928,154 @@ class _ScoreEntryRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Best Score Controls (tap winner) ──
+
+class _BestScoreControls extends StatelessWidget {
+  final GameState game;
+  const _BestScoreControls({required this.game});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const Text(
+          'Who scored highest?',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _PlayerPickButton(
+                name: game.player1?.name ?? 'Player 1',
+                color: AppColors.player1,
+                onTap: () => game.setJudgeWinner(0),
+              ),
+            ),
+            const SizedBox(width: 10),
+            if (!game.isSinglePlayer)
+              Expanded(
+                child: _PlayerPickButton(
+                  name: game.player2?.name ?? 'Player 2',
+                  color: AppColors.player2,
+                  onTap: () => game.setJudgeWinner(1),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: () => game.nextChallenge(),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.cardBorder,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Text(
+              'Tie / Redo',
+              textAlign: TextAlign.center,
+              style:
+                  TextStyle(fontWeight: FontWeight.w600, color: Colors.white70),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Reusable Player Pick Button ──
+
+class _PlayerPickButton extends StatefulWidget {
+  final String name;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _PlayerPickButton({
+    required this.name,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  State<_PlayerPickButton> createState() => _PlayerPickButtonState();
+}
+
+class _PlayerPickButtonState extends State<_PlayerPickButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _anim;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+    _scale = Tween(begin: 1.0, end: 0.92).animate(
+      CurvedAnimation(parent: _anim, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _anim.forward(),
+      onTapUp: (_) {
+        _anim.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _anim.reverse(),
+      child: AnimatedBuilder(
+        animation: _scale,
+        builder: (_, child) => Transform.scale(
+          scale: _scale.value,
+          child: child,
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                widget.color,
+                Color.lerp(widget.color, Colors.white, 0.12)!,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withAlpha(80),
+                blurRadius: 10,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Text(
+            widget.name,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1345,46 +2098,18 @@ class _JudgeControls extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: GestureDetector(
+              child: _PlayerPickButton(
+                name: game.player1?.name ?? 'Player 1',
+                color: AppColors.player1,
                 onTap: () => game.setJudgeWinner(0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  decoration: BoxDecoration(
-                    color: AppColors.player1,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    game.player1?.name ?? 'Player 1',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: GestureDetector(
+              child: _PlayerPickButton(
+                name: game.player2?.name ?? 'Player 2',
+                color: AppColors.player2,
                 onTap: () => game.setJudgeWinner(1),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  decoration: BoxDecoration(
-                    color: AppColors.player2,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    game.player2?.name ?? 'Player 2',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
               ),
             ),
           ],
@@ -1399,13 +2124,14 @@ class _JudgeControls extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF555555),
+              color: AppColors.cardBorder,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(
               'Tie / Redo',
               textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white70),
+              style:
+                  TextStyle(fontWeight: FontWeight.w600, color: Colors.white70),
             ),
           ),
         ),
@@ -1482,23 +2208,32 @@ class _EliminationPlayerRow extends StatelessWidget {
           children: [
             SizedBox(
               width: 80,
-              child: Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: labelColor)),
+              child: Text(label,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w700, color: labelColor)),
             ),
             // Lives display
             ...List.generate(maxLives, (i) {
               return Padding(
                 padding: const EdgeInsets.only(right: 4),
-                child: Icon(
-                  i < lives ? Icons.favorite : Icons.favorite_border,
-                  color: i < lives ? AppColors.miss : Colors.white24,
-                  size: 20,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: Icon(
+                    i < lives ? Icons.favorite : Icons.favorite_border,
+                    key: ValueKey('$label-life-$i-${i < lives}'),
+                    color: i < lives ? AppColors.miss : Colors.white24,
+                    size: 20,
+                  ),
                 ),
               );
             }),
             const Spacer(),
             Text(
               '$hits hits',
-              style: const TextStyle(color: AppColors.hit, fontWeight: FontWeight.w600, fontSize: 12),
+              style: const TextStyle(
+                  color: AppColors.hit,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12),
             ),
           ],
         ),
@@ -1536,7 +2271,9 @@ class _EliminationPlayerRow extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
-                    color: lives > 0 ? AppColors.hit.withAlpha(51) : AppColors.miss.withAlpha(51),
+                    color: lives > 0
+                        ? AppColors.hit.withAlpha(51)
+                        : AppColors.miss.withAlpha(51),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: lives > 0 ? AppColors.hit : AppColors.miss,
@@ -1583,7 +2320,7 @@ class _AuctionControlsState extends State<_AuctionControls> {
   void _submitBid(int playerIdx) {
     final controller = playerIdx == 0 ? _p1Controller : _p2Controller;
     final bid = int.tryParse(controller.text);
-    if (bid != null && bid >= 1 && bid <= 9) {
+    if (bid != null && bid >= 1 && bid <= 20) {
       widget.game.setAuctionBid(playerIdx, bid);
     }
   }
@@ -1612,7 +2349,7 @@ class _AuctionControlsState extends State<_AuctionControls> {
           ),
         ),
         const Text(
-          'Bid low to win! (1-9 darts)',
+          'Bid low to win! (1-20 darts)',
           style: TextStyle(color: AppColors.textMuted, fontSize: 12),
         ),
         const SizedBox(height: 10),
@@ -1642,10 +2379,10 @@ class _AuctionControlsState extends State<_AuctionControls> {
     final winnerName = winnerIdx == 0
         ? (game.player1?.name ?? 'P1')
         : (game.player2?.name ?? 'P2');
-    final winnerColor = winnerIdx == 0 ? AppColors.player1 : AppColors.player2;
-    final bid = winnerIdx == 0
-        ? game.p1State.auctionBid
-        : game.p2State.auctionBid;
+    final winnerColor =
+        winnerIdx == 0 ? AppColors.player1 : AppColors.player2;
+    final bid =
+        winnerIdx == 0 ? game.p1State.auctionBid : game.p2State.auctionBid;
     final winnerPs = winnerIdx == 0 ? game.p1State : game.p2State;
 
     if (winnerPs.hitMissChoice != null) {
@@ -1662,9 +2399,12 @@ class _AuctionControlsState extends State<_AuctionControls> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
-              color: isHit ? AppColors.hit.withAlpha(51) : AppColors.miss.withAlpha(51),
+              color: isHit
+                  ? AppColors.hit.withAlpha(51)
+                  : AppColors.miss.withAlpha(51),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isHit ? AppColors.hit : AppColors.miss),
+              border:
+                  Border.all(color: isHit ? AppColors.hit : AppColors.miss),
             ),
             child: Text(
               isHit ? 'CHECKOUT! (+2 pts)' : 'FAILED! (opponent +1 pt)',
@@ -1688,7 +2428,8 @@ class _AuctionControlsState extends State<_AuctionControls> {
             children: [
               TextSpan(
                 text: winnerName,
-                style: TextStyle(color: winnerColor, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                    color: winnerColor, fontWeight: FontWeight.w700),
               ),
               TextSpan(
                 text: ' won with bid of $bid darts!',
@@ -1755,7 +2496,9 @@ class _AuctionBidRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 80,
-            child: Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: labelColor)),
+            child: Text(label,
+                style: TextStyle(
+                    fontWeight: FontWeight.w700, color: labelColor)),
           ),
           Expanded(
             child: Container(
@@ -1784,7 +2527,9 @@ class _AuctionBidRow extends StatelessWidget {
       children: [
         SizedBox(
           width: 80,
-          child: Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: labelColor)),
+          child: Text(label,
+              style:
+                  TextStyle(fontWeight: FontWeight.w700, color: labelColor)),
         ),
         Expanded(
           child: TextField(
@@ -1792,7 +2537,7 @@ class _AuctionBidRow extends StatelessWidget {
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-            decoration: const InputDecoration(hintText: 'Bid (1-9)'),
+            decoration: const InputDecoration(hintText: 'Bid (1-20 darts)'),
             onSubmitted: (_) => onSubmit(),
           ),
         ),
@@ -1891,7 +2636,8 @@ class _ProgressiveControlsState extends State<_ProgressiveControls> {
                     decoration: BoxDecoration(
                       color: AppColors.player1.withAlpha(30),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.player1.withAlpha(80)),
+                      border:
+                          Border.all(color: AppColors.player1.withAlpha(80)),
                     ),
                     child: Text(
                       '${game.p1State.scoreEntry}',
@@ -1916,7 +2662,8 @@ class _ProgressiveControlsState extends State<_ProgressiveControls> {
                 width: 80,
                 child: Text(
                   currentName,
-                  style: TextStyle(fontWeight: FontWeight.w700, color: currentColor),
+                  style: TextStyle(
+                      fontWeight: FontWeight.w700, color: currentColor),
                 ),
               ),
               Expanded(
@@ -1924,9 +2671,12 @@ class _ProgressiveControlsState extends State<_ProgressiveControls> {
                   controller: _controller,
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 18),
                   decoration: InputDecoration(
-                    hintText: isP1Turn ? 'Set the target! (max 180)' : 'Beat ${game.progressiveTarget}! (max 180)',
+                    hintText: isP1Turn
+                        ? 'Set the target! (max 180)'
+                        : 'Beat ${game.progressiveTarget}! (max 180)',
                   ),
                   onSubmitted: (_) => _submit(),
                 ),
@@ -1940,7 +2690,8 @@ class _ProgressiveControlsState extends State<_ProgressiveControls> {
                     color: currentColor,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 20),
+                  child:
+                      const Icon(Icons.check, color: Colors.white, size: 20),
                 ),
               ),
             ],
@@ -1970,7 +2721,8 @@ class _ProgressiveControlsState extends State<_ProgressiveControls> {
             ),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text('vs', style: TextStyle(color: AppColors.textMuted)),
+              child:
+                  Text('vs', style: TextStyle(color: AppColors.textMuted)),
             ),
             _ProgressiveScoreChip(
               name: game.player2?.name ?? 'P2',
@@ -2020,7 +2772,9 @@ class _ProgressiveScoreChip extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(name, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+          Text(name,
+              style: TextStyle(
+                  fontSize: 12, color: color, fontWeight: FontWeight.w600)),
           Text(
             '$score',
             style: TextStyle(

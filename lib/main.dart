@@ -29,7 +29,7 @@ class DartsApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => GameState(),
       child: MaterialApp(
-        title: 'Pub Darts Challenge',
+        title: 'Dart-Core Bonanza',
         theme: AppTheme.dark,
         debugShowCheckedModeBanner: false,
         home: const HomeScreen(),
