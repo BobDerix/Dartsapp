@@ -130,10 +130,10 @@ class ChallengeService {
   /// Generate a roulette challenge. The spinner determines the number.
   Challenge _generateRoulette() {
     final options = [
-      'Gooi de single van dit nummer!',
-      'Gooi de double van dit nummer!',
-      'Gooi de triple van dit nummer!',
-      'Raak dit nummer!',
+      'Hit the Single of this number!',
+      'Hit the Double of this number!',
+      'Hit the Triple of this number!',
+      'Hit this number!',
     ];
     final difficulties = [2, 3, 4, 2];
     final idx = _random.nextInt(options.length);
