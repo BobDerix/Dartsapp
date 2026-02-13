@@ -30,7 +30,7 @@ class HomeScreen extends StatelessWidget {
                     end: Alignment.bottomRight,
                   ).createShader(bounds),
                   child: const Text(
-                    'Pub Darts\nChallenge',
+                    'Dart-Core\nBonanza',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 40,
