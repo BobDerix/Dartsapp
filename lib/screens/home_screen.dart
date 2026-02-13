@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../widgets/logo_widget.dart';
 import 'game_setup_screen.dart';
 import 'players_screen.dart';
 import 'history_screen.dart';
@@ -18,8 +17,12 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo
-                const LogoWidget(),
+                // Logo image
+                Image.asset(
+                  'assets/images/logo.png',
+                  width: 280,
+                  fit: BoxFit.contain,
+                ),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
