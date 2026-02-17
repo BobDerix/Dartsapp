@@ -40,12 +40,12 @@ class ChallengeService {
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🍀', text: 'Lucky 7s! Hit S7, D7 or T7', difficulty: 3),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🧲', text: 'Magnet! All 3 darts touching each other in the board', difficulty: 3),
 
-    // ── SCORING (Threshold) ──
-    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.threshold, emoji: '📈', text: 'Score 60+', targetValue: 60, difficulty: 2),
-    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.threshold, emoji: '📈', text: 'Score 80+', targetValue: 80, difficulty: 3),
-    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.threshold, emoji: '📈', text: 'Score 100+', targetValue: 100, difficulty: 3),
-    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.threshold, emoji: '📈', text: 'Score 120+', targetValue: 120, difficulty: 4),
-    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.threshold, emoji: '📈', text: 'Score 140+', targetValue: 140, difficulty: 4),
+    // ── SCORING (Hit/Miss) ──
+    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '📈', text: 'Score 60+', difficulty: 2),
+    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '📈', text: 'Score 80+', difficulty: 3),
+    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '📈', text: 'Score 100+', difficulty: 3),
+    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '📈', text: 'Score 120+', difficulty: 4),
+    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '📈', text: 'Score 140+', difficulty: 4),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🔥', text: '180! Hit T20 T20 T20', difficulty: 4),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🧱', text: 'No 1s or 5s allowed', difficulty: 2),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🚫', text: 'Score under 20 (low is hard!)', difficulty: 3),
@@ -54,7 +54,7 @@ class ChallengeService {
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🎲', text: 'All 3 darts must score (no misses!)', difficulty: 2),
 
     // ── NEW SCORING: Darts culture (G) ──
-    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.threshold, emoji: '🍽️', text: 'Bed & Breakfast & Lunch! Score 41+ (S20, S1, D10)', targetValue: 41, difficulty: 3),
+    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🍽️', text: 'Bed & Breakfast & Lunch! Score 41+ (S20, S1, D10)', difficulty: 3),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🐂', text: 'Ton-80 Territory! Score 60+ using only T20 area', difficulty: 4),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🎭', text: 'The Entertainer! Hit 3 different triples in one visit', difficulty: 4),
 
@@ -104,11 +104,6 @@ class ChallengeService {
     Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '🤚', text: 'Weak hand throw! Score with non-dominant hand', difficulty: 3),
     Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '🙈', text: 'Eyes closed! Throw 1 dart blind - hit the board', difficulty: 2),
     Challenge(category: ChallengeCategory.special, type: ChallengeType.elimination, emoji: '🪙', text: 'Hit T20 (3 lives)', subRounds: 3, difficulty: 4),
-
-    // ── NEW SPECIAL: Timer challenges (F - timer pressure) ──
-    Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '⏱️', text: 'SPEED ROUND! 3 darts in 10 seconds - score 40+!', difficulty: 3, hasTimer: true, timerSeconds: 10),
-    Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '⏱️', text: 'SPEED ROUND! Hit any double in 15 seconds!', difficulty: 3, hasTimer: true, timerSeconds: 15),
-    Challenge(category: ChallengeCategory.special, type: ChallengeType.threshold, emoji: '💨', text: 'BLITZ! Score 60+ in 15 seconds!', targetValue: 60, difficulty: 3, hasTimer: true, timerSeconds: 15),
 
     // ── NEW SPECIAL: Roulette (F - board roulette) ──
     Challenge(category: ChallengeCategory.special, type: ChallengeType.hitMiss, emoji: '🎡', text: 'ROULETTE!', difficulty: 3, isRoulette: true),
@@ -186,16 +181,6 @@ class ChallengeService {
       }
     }
 
-    // 8% chance of timer challenge
-    if (_random.nextDouble() < 0.08) {
-      final timerChallenges = _staticChallenges.where(
-        (c) => c.hasTimer,
-      ).toList();
-      if (timerChallenges.isNotEmpty) {
-        return timerChallenges[_random.nextInt(timerChallenges.length)];
-      }
-    }
-
     // 15% chance of battle in 2P mode
     if (isTwoPlayer && _random.nextDouble() < 0.15) {
       return _pickBattle();
@@ -226,10 +211,9 @@ class ChallengeService {
     final target = 20 + (_random.nextInt(13) * 10); // 20-140
     pool.add(Challenge(
       category: ChallengeCategory.scoring,
-      type: ChallengeType.threshold,
+      type: ChallengeType.hitMiss,
       emoji: '💯',
       text: 'Score $target+',
-      targetValue: target,
       difficulty: (target / 40).ceil().clamp(1, 5),
     ));
 

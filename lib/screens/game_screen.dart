@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -149,14 +148,6 @@ class _GameScreenState extends State<GameScreen>
                       key: ValueKey('challenge_${game.roundNumber}'),
                     ),
                   ),
-
-                  // Timer widget (for timer challenges)
-                  if (game.currentChallenge?.hasTimer == true &&
-                      !game.roundComplete)
-                    _TimerWidget(
-                      seconds: game.currentChallenge!.timerSeconds,
-                      key: ValueKey('timer_${game.roundNumber}'),
-                    ),
 
                   // Control area
                   _ControlArea(
@@ -808,127 +799,6 @@ class _PulsingTextState extends State<_PulsingText>
   }
 }
 
-// ── Timer Widget ──
-
-class _TimerWidget extends StatefulWidget {
-  final int seconds;
-  const _TimerWidget({super.key, required this.seconds});
-
-  @override
-  State<_TimerWidget> createState() => _TimerWidgetState();
-}
-
-class _TimerWidgetState extends State<_TimerWidget>
-    with SingleTickerProviderStateMixin {
-  late int _remaining;
-  Timer? _timer;
-  late AnimationController _pulse;
-
-  @override
-  void initState() {
-    super.initState();
-    _remaining = widget.seconds;
-    _pulse = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_remaining > 0) {
-        setState(() => _remaining--);
-        if (_remaining <= 5) {
-          _pulse.forward().then((_) => _pulse.reverse());
-        }
-      } else {
-        timer.cancel();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _pulse.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isWarning = _remaining <= 5;
-    final progress = _remaining / widget.seconds;
-
-    return AnimatedBuilder(
-      animation: _pulse,
-      builder: (_, __) {
-        final scale = isWarning ? 1.0 + _pulse.value * 0.15 : 1.0;
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-          child: Column(
-            children: [
-              Transform.scale(
-                scale: scale,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.timer,
-                      color: isWarning
-                          ? AppColors.timerWarning
-                          : AppColors.timerNormal,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$_remaining',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: isWarning
-                            ? AppColors.timerWarning
-                            : AppColors.timerNormal,
-                        shadows: isWarning
-                            ? [
-                                Shadow(
-                                  color:
-                                      AppColors.timerWarning.withAlpha(150),
-                                  blurRadius: 12,
-                                ),
-                              ]
-                            : null,
-                      ),
-                    ),
-                    const Text(
-                      's',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 4),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: Colors.white.withAlpha(26),
-                  valueColor: AlwaysStoppedAnimation(
-                    isWarning
-                        ? AppColors.timerWarning
-                        : AppColors.timerNormal,
-                  ),
-                  minHeight: 4,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
 // ── Scoreboard ──
 
 class _Scoreboard extends StatelessWidget {
@@ -1322,25 +1192,17 @@ class _ChallengeDisplayState extends State<_ChallengeDisplay>
                     }),
                   ),
 
-                  // Timer/roulette badges
-                  if (widget.challenge!.hasTimer ||
-                      widget.challenge!.isRoulette) ...[
+                  // Roulette badge
+                  if (widget.challenge!.isRoulette) ...[
                     const SizedBox(height: 8),
-                    Row(
+                    const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (widget.challenge!.hasTimer)
-                          _ChallengeBadge(
-                            icon: Icons.timer,
-                            label: '${widget.challenge!.timerSeconds}s',
-                            color: AppColors.timerWarning,
-                          ),
-                        if (widget.challenge!.isRoulette)
-                          const _ChallengeBadge(
-                            icon: Icons.casino,
-                            label: 'ROULETTE',
-                            color: AppColors.catBattle,
-                          ),
+                        _ChallengeBadge(
+                          icon: Icons.casino,
+                          label: 'ROULETTE',
+                          color: AppColors.catBattle,
+                        ),
                       ],
                     ),
                   ],
