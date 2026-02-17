@@ -49,32 +49,15 @@ class _HomeScreenState extends State<HomeScreen>
               children: [
                 // Animated floating logo
                 AnimatedBuilder(
-                  animation: Listenable.merge([_float, _glow]),
+                  animation: _float,
                   builder: (_, __) {
                     final floatOffset = sin(_float.value * pi) * 8;
-                    final glowAlpha = (30 + 40 * _glow.value).toInt();
                     return Transform.translate(
                       offset: Offset(0, floatOffset),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.cyan.withAlpha(glowAlpha),
-                              blurRadius: 40,
-                              spreadRadius: 5,
-                            ),
-                            BoxShadow(
-                              color: AppColors.gold.withAlpha(glowAlpha ~/ 2),
-                              blurRadius: 60,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: Image.asset(
-                          'assets/images/logoo.png',
-                          width: 300,
-                          fit: BoxFit.contain,
-                        ),
+                      child: Image.asset(
+                        'assets/images/logoo.png',
+                        width: 300,
+                        fit: BoxFit.contain,
                       ),
                     );
                   },
