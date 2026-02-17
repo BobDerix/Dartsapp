@@ -71,8 +71,8 @@ class _HomeScreenState extends State<HomeScreen>
                           ],
                         ),
                         child: Image.asset(
-                          'assets/images/logo.png',
-                          width: 280,
+                          'assets/images/logoo.png',
+                          width: 300,
                           fit: BoxFit.contain,
                         ),
                       ),
