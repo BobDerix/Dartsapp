@@ -1,11 +1,41 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'game_setup_screen.dart';
 import 'players_screen.dart';
 import 'history_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _float;
+  late AnimationController _glow;
+
+  @override
+  void initState() {
+    super.initState();
+    _float = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    )..repeat(reverse: true);
+    _glow = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _float.dispose();
+    _glow.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,26 +47,59 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo image
-                Image.asset(
-                  'assets/images/logo.png',
-                  width: 280,
-                  fit: BoxFit.contain,
+                // Animated floating logo
+                AnimatedBuilder(
+                  animation: Listenable.merge([_float, _glow]),
+                  builder: (_, __) {
+                    final floatOffset = sin(_float.value * pi) * 8;
+                    final glowAlpha = (30 + 40 * _glow.value).toInt();
+                    return Transform.translate(
+                      offset: Offset(0, floatOffset),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.cyan.withAlpha(glowAlpha),
+                              blurRadius: 40,
+                              spreadRadius: 5,
+                            ),
+                            BoxShadow(
+                              color: AppColors.gold.withAlpha(glowAlpha ~/ 2),
+                              blurRadius: 60,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Image.asset(
+                          'assets/images/logoo.png',
+                          width: 300,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.cyan.withAlpha(80)),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    'PRO EDITION',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.cyan,
-                      letterSpacing: 4,
+                AnimatedBuilder(
+                  animation: _glow,
+                  builder: (_, __) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: AppColors.cyan.withAlpha(
+                          (60 + 60 * _glow.value).toInt(),
+                        ),
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'PRO EDITION',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.cyan,
+                        letterSpacing: 4,
+                      ),
                     ),
                   ),
                 ),

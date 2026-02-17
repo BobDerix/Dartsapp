@@ -130,10 +130,10 @@ class ChallengeService {
   /// Generate a roulette challenge. The spinner determines the number.
   Challenge _generateRoulette() {
     final options = [
-      'Gooi de single van dit nummer!',
-      'Gooi de double van dit nummer!',
-      'Gooi de triple van dit nummer!',
-      'Raak dit nummer!',
+      'Hit the Single of this number!',
+      'Hit the Double of this number!',
+      'Hit the Triple of this number!',
+      'Hit this number!',
     ];
     final difficulties = [2, 3, 4, 2];
     final idx = _random.nextInt(options.length);
@@ -324,6 +324,33 @@ class ChallengeService {
       text: 'SUDDEN DEATH: Closest to Bull!',
       difficulty: 5,
     );
+  }
+
+  /// Get challenges filtered by category (for redemption card).
+  List<Challenge> getChallengesForCategory({
+    required ChallengeCategory category,
+    required bool isTwoPlayer,
+    Challenge? lastChallenge,
+  }) {
+    final pool = _staticChallenges.where((c) => c.category == category).toList();
+
+    // Filter out types that don't work in single-player
+    if (!isTwoPlayer) {
+      pool.removeWhere(
+        (c) => c.type == ChallengeType.bestScore ||
+            c.type == ChallengeType.closest ||
+            c.type == ChallengeType.elimination ||
+            c.type == ChallengeType.auction ||
+            c.type == ChallengeType.progressive,
+      );
+    }
+
+    // Avoid repeating last challenge
+    if (lastChallenge != null && pool.length > 1) {
+      pool.removeWhere((c) => c.text == lastChallenge.text);
+    }
+
+    return pool;
   }
 
   /// Dart board segment names for roulette display.
