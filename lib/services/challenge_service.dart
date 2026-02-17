@@ -26,17 +26,13 @@ class ChallengeService {
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🪜', text: 'Hit 3 consecutive numbers (e.g. 18-19-20)', difficulty: 3),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '😈', text: 'Hit T19 (the wrong bed!)', difficulty: 4),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🟡', text: 'Hit the outer Bull (25)', difficulty: 4),
-    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '⬅️', text: 'Left side only! (1-10 half)', difficulty: 3),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '📐', text: 'All 3 darts in the big singles', difficulty: 2),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🎰', text: 'Hit S20, D20 and T20', difficulty: 4),
-    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🔄', text: 'Around the board: hit 3 different areas (top, left, right)', difficulty: 2),
 
     // ── NEW PRECISION: Darts culture classics (G) ──
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '💄', text: 'The Lipstick! Hit T20, T18 or T19', difficulty: 3),
-    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🏝️', text: 'The Coast! Round the board: hit as many consecutive numbers from 1 upward in 3 darts', difficulty: 3),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🏠', text: 'Madhouse! Check out on D1', difficulty: 4),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🛤️', text: 'The Railway! All 3 darts between the two wires of a double', difficulty: 4),
-    Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🪶', text: 'Feather Touch! All 3 darts in the thin inner single', difficulty: 3),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🍀', text: 'Lucky 7s! Hit S7, D7 or T7', difficulty: 3),
     Challenge(category: ChallengeCategory.precision, type: ChallengeType.hitMiss, emoji: '🧲', text: 'Magnet! All 3 darts touching each other in the board', difficulty: 3),
 
@@ -47,7 +43,6 @@ class ChallengeService {
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '📈', text: 'Score 120+', difficulty: 4),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '📈', text: 'Score 140+', difficulty: 4),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🔥', text: '180! Hit T20 T20 T20', difficulty: 4),
-    Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🧱', text: 'No 1s or 5s allowed', difficulty: 2),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🚫', text: 'Score under 20 (low is hard!)', difficulty: 3),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '🥐', text: 'Score exactly 26 (Breakfast!)', difficulty: 3),
     Challenge(category: ChallengeCategory.scoring, type: ChallengeType.hitMiss, emoji: '👑', text: 'Score a ton (100+) without T20', difficulty: 4),
@@ -74,7 +69,7 @@ class ChallengeService {
     Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '💯', text: 'Checkout 120', difficulty: 4),
 
     // ── FINISH: Darts culture ──
-    Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '🇳🇱', text: 'Checkout 84 (The Barney!)', difficulty: 3),
+    Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '🇳🇱', text: 'Checkout 156 (The Barney!)', difficulty: 4),
     Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', text: 'Checkout 96 (The Bristow!)', difficulty: 3),
     Challenge(category: ChallengeCategory.finish, type: ChallengeType.hitMiss, emoji: '🎭', text: 'Checkout 110 (T20, Bull)', difficulty: 4),
 
@@ -273,15 +268,6 @@ class ChallengeService {
           c.type != ChallengeType.auction &&
           c.type != ChallengeType.progressive,
     ).toList();
-    // Add dynamic battle
-    final seg = _segments[_random.nextInt(_segments.length)];
-    battles.add(Challenge(
-      category: ChallengeCategory.battle,
-      type: ChallengeType.closest,
-      emoji: '🏹',
-      text: 'Closest to $seg!',
-      difficulty: 3,
-    ));
     return battles[_random.nextInt(battles.length)];
   }
 
@@ -335,6 +321,15 @@ class ChallengeService {
     }
 
     return pool;
+  }
+
+  /// Minimum number of darts needed for a checkout.
+  static int minDartsForCheckout(int checkout) {
+    if (checkout <= 0) return 1;
+    if (checkout == 50) return 1; // Bullseye
+    if (checkout <= 40 && checkout % 2 == 0) return 1; // Single double
+    if (checkout <= 110) return 2;
+    return 3;
   }
 
   /// Dart board segment names for roulette display.

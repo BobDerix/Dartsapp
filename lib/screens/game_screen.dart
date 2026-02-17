@@ -2396,7 +2396,8 @@ class _AuctionControlsState extends State<_AuctionControls> {
   void _submitBid(int playerIdx) {
     final controller = playerIdx == 0 ? _p1Controller : _p2Controller;
     final bid = int.tryParse(controller.text);
-    if (bid != null && bid >= 1 && bid <= 20) {
+    final minBid = widget.game.auctionMinBid;
+    if (bid != null && bid >= minBid && bid <= 20) {
       widget.game.setAuctionBid(playerIdx, bid);
     }
   }
@@ -2424,9 +2425,9 @@ class _AuctionControlsState extends State<_AuctionControls> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const Text(
-          'Bid low to win! (1-20 darts)',
-          style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+        Text(
+          'Bid low to win! (${game.auctionMinBid}-20 darts)',
+          style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
         ),
         const SizedBox(height: 10),
         _AuctionBidRow(
@@ -2435,6 +2436,7 @@ class _AuctionControlsState extends State<_AuctionControls> {
           controller: _p1Controller,
           submitted: game.p1State.auctionBid != null,
           submittedValue: game.p1State.auctionBid,
+          minBid: game.auctionMinBid,
           onSubmit: () => _submitBid(0),
         ),
         const SizedBox(height: 8),
@@ -2444,6 +2446,7 @@ class _AuctionControlsState extends State<_AuctionControls> {
           controller: _p2Controller,
           submitted: game.p2State.auctionBid != null,
           submittedValue: game.p2State.auctionBid,
+          minBid: game.auctionMinBid,
           onSubmit: () => _submitBid(1),
         ),
       ],
@@ -2554,6 +2557,7 @@ class _AuctionBidRow extends StatelessWidget {
   final TextEditingController controller;
   final bool submitted;
   final int? submittedValue;
+  final int minBid;
   final VoidCallback onSubmit;
 
   const _AuctionBidRow({
@@ -2562,6 +2566,7 @@ class _AuctionBidRow extends StatelessWidget {
     required this.controller,
     required this.submitted,
     this.submittedValue,
+    required this.minBid,
     required this.onSubmit,
   });
 
@@ -2613,7 +2618,7 @@ class _AuctionBidRow extends StatelessWidget {
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-            decoration: const InputDecoration(hintText: 'Bid (1-20 darts)'),
+            decoration: InputDecoration(hintText: 'Bid ($minBid-20 darts)'),
             onSubmitted: (_) => onSubmit(),
           ),
         ),
@@ -2666,19 +2671,9 @@ class _ProgressiveControlsState extends State<_ProgressiveControls> {
   Widget build(BuildContext context) {
     final game = widget.game;
 
-    if (game.progressiveResolved) {
-      return _buildResult(game);
-    }
-
-    final isP1Turn = game.progressiveTurn == 0;
-    final currentName = isP1Turn
-        ? (game.player1?.name ?? 'P1')
-        : (game.player2?.name ?? 'P2');
-    final currentColor = isP1Turn ? AppColors.player1 : AppColors.player2;
-
     return Column(
       children: [
-        if (game.progressiveTarget > 0) ...[
+        if (game.progressiveTarget > 0 && !game.progressiveResolved) ...[
           Text(
             'Target to beat: ${game.progressiveTarget}',
             style: const TextStyle(
@@ -2690,177 +2685,135 @@ class _ProgressiveControlsState extends State<_ProgressiveControls> {
           const SizedBox(height: 4),
         ],
 
-        // Show P1's score if already entered
-        if (game.p1State.scoreEntry != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
+        // Score history
+        if (game.progressiveScores.isNotEmpty)
+          Container(
+            constraints: const BoxConstraints(maxHeight: 120),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: game.progressiveScores.length,
+              itemBuilder: (_, i) {
+                final entry = game.progressiveScores[i];
+                final name = entry.playerIdx == 0
+                    ? (game.player1?.name ?? 'P1')
+                    : (game.player2?.name ?? 'P2');
+                final color = entry.playerIdx == 0
+                    ? AppColors.player1
+                    : AppColors.player2;
+                final isFail = game.progressiveResolved &&
+                    i == game.progressiveScores.length - 1;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 80,
+                        child: Text(
+                          name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: color,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isFail
+                                ? AppColors.miss.withAlpha(30)
+                                : color.withAlpha(20),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isFail
+                                  ? AppColors.miss.withAlpha(100)
+                                  : color.withAlpha(60),
+                            ),
+                          ),
+                          child: Text(
+                            '${entry.score}${isFail ? '  FAILED' : ''}',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: isFail ? AppColors.miss : color,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+
+        // Result message
+        if (game.progressiveResolved) ...[
+          const SizedBox(height: 8),
+          Text(
+            '${game.progressiveLoserIdx == 0 ? (game.player2?.name ?? 'P2') : (game.player1?.name ?? 'P1')} wins the round!',
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppColors.chaosGold,
+            ),
+          ),
+        ],
+
+        // Current player's input
+        if (!game.progressiveResolved) ...[
+          const SizedBox(height: 6),
+          Builder(builder: (_) {
+            final isP1Turn = game.progressiveTurn == 0;
+            final currentName = isP1Turn
+                ? (game.player1?.name ?? 'P1')
+                : (game.player2?.name ?? 'P2');
+            final currentColor =
+                isP1Turn ? AppColors.player1 : AppColors.player2;
+            return Row(
               children: [
                 SizedBox(
                   width: 80,
                   child: Text(
-                    game.player1?.name ?? 'P1',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.player1,
-                    ),
+                    currentName,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700, color: currentColor),
                   ),
                 ),
                 Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 18),
+                    decoration: InputDecoration(
+                      hintText: game.progressiveScores.isEmpty
+                          ? 'Set the target! (max 180)'
+                          : 'Beat ${game.progressiveTarget}! (max 180)',
+                    ),
+                    onSubmitted: (_) => _submit(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _submit,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.player1.withAlpha(30),
+                      color: currentColor,
                       borderRadius: BorderRadius.circular(12),
-                      border:
-                          Border.all(color: AppColors.player1.withAlpha(80)),
                     ),
-                    child: Text(
-                      '${game.p1State.scoreEntry}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.player1,
-                      ),
-                    ),
+                    child: const Icon(Icons.check,
+                        color: Colors.white, size: 20),
                   ),
                 ),
               ],
-            ),
-          ),
-
-        // Current player's turn
-        if (!game.progressiveResolved)
-          Row(
-            children: [
-              SizedBox(
-                width: 80,
-                child: Text(
-                  currentName,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700, color: currentColor),
-                ),
-              ),
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 18),
-                  decoration: InputDecoration(
-                    hintText: isP1Turn
-                        ? 'Set the target! (max 180)'
-                        : 'Beat ${game.progressiveTarget}! (max 180)',
-                  ),
-                  onSubmitted: (_) => _submit(),
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: _submit,
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: currentColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child:
-                      const Icon(Icons.check, color: Colors.white, size: 20),
-                ),
-              ),
-            ],
-          ),
-      ],
-    );
-  }
-
-  Widget _buildResult(GameState game) {
-    final s1 = game.p1State.scoreEntry ?? 0;
-    final s2 = game.p2State.scoreEntry ?? 0;
-    final p2Won = s2 > s1;
-    final winnerName = p2Won
-        ? (game.player2?.name ?? 'P2')
-        : (game.player1?.name ?? 'P1');
-
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _ProgressiveScoreChip(
-              name: game.player1?.name ?? 'P1',
-              score: s1,
-              color: AppColors.player1,
-              isWinner: !p2Won,
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child:
-                  Text('vs', style: TextStyle(color: AppColors.textMuted)),
-            ),
-            _ProgressiveScoreChip(
-              name: game.player2?.name ?? 'P2',
-              score: s2,
-              color: AppColors.player2,
-              isWinner: p2Won,
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '$winnerName wins the round!',
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.chaosGold,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ProgressiveScoreChip extends StatelessWidget {
-  final String name;
-  final int score;
-  final Color color;
-  final bool isWinner;
-
-  const _ProgressiveScoreChip({
-    required this.name,
-    required this.score,
-    required this.color,
-    required this.isWinner,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: isWinner ? color.withAlpha(40) : Colors.white.withAlpha(13),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isWinner ? color : Colors.white24,
-          width: isWinner ? 2 : 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Text(name,
-              style: TextStyle(
-                  fontSize: 12, color: color, fontWeight: FontWeight.w600)),
-          Text(
-            '$score',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: isWinner ? color : AppColors.textSecondary,
-            ),
-          ),
+            );
+          }),
         ],
-      ),
+      ],
     );
   }
 }

@@ -106,6 +106,8 @@ class GameState extends ChangeNotifier {
   int progressiveTarget = 0; // current target to beat
   int progressiveTurn = 0; // 0=p1's turn, 1=p2's turn
   bool progressiveResolved = false;
+  int? progressiveLoserIdx; // who failed (0=p1, 1=p2)
+  List<({int playerIdx, int score})> progressiveScores = [];
 
   // DB tracking
   GameSession? _currentSession;
@@ -284,19 +286,30 @@ class GameState extends ChangeNotifier {
         return false;
 
       case ChallengeType.progressive:
-        if (p2State.scoreEntry != null) {
-          p2State.scoreEntry = null;
-          progressiveResolved = false;
-          roundComplete = false;
-          progressiveTurn = 1;
-          return true;
-        } else if (p1State.scoreEntry != null) {
-          p1State.scoreEntry = null;
+        if (progressiveScores.isEmpty) return false;
+        // Pop last score
+        final last = progressiveScores.removeLast();
+        progressiveTurn = last.playerIdx;
+        progressiveResolved = false;
+        progressiveLoserIdx = null;
+        roundComplete = false;
+        // Restore target from previous entry
+        if (progressiveScores.isEmpty) {
           progressiveTarget = 0;
-          progressiveTurn = 0;
-          return true;
+        } else {
+          progressiveTarget = progressiveScores.last.score;
         }
-        return false;
+        // Clear player's scoreEntry
+        final undoPs = last.playerIdx == 0 ? p1State : p2State;
+        // Restore to previous score for this player, or null
+        final prevForPlayer = progressiveScores.lastWhere(
+          (s) => s.playerIdx == last.playerIdx,
+          orElse: () => (playerIdx: -1, score: -1),
+        );
+        undoPs.scoreEntry = prevForPlayer.playerIdx >= 0
+            ? prevForPlayer.score
+            : null;
+        return true;
     }
   }
 
@@ -366,6 +379,8 @@ class GameState extends ChangeNotifier {
     progressiveTarget = 0;
     progressiveTurn = 0;
     progressiveResolved = false;
+    progressiveLoserIdx = null;
+    progressiveScores = [];
 
     if (forceSuddenDeath) {
       currentChallenge = _challengeService.suddenDeath();
@@ -475,9 +490,14 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Minimum bid for the current auction challenge.
+  int get auctionMinBid =>
+      ChallengeService.minDartsForCheckout(currentChallenge?.targetValue ?? 0);
+
   /// Handle auction bid.
   void setAuctionBid(int playerIdx, int bid) {
     if (auctionPhase != AuctionPhase.bidding) return;
+    if (bid < auctionMinBid) return; // Enforce minimum
     final ps = playerIdx == 0 ? p1State : p2State;
     ps.auctionBid = bid;
     _audio.tap();
@@ -510,30 +530,31 @@ class GameState extends ChangeNotifier {
   /// Handle progressive score entry.
   void setProgressiveScore(int playerIdx, int score) {
     if (progressiveResolved) return;
-    final ps = playerIdx == 0 ? p1State : p2State;
+    if (playerIdx != progressiveTurn) return;
 
-    if (progressiveTurn == 0 && playerIdx == 0 && p1State.scoreEntry == null) {
-      // P1's first throw
-      ps.scoreEntry = score;
+    progressiveScores.add((playerIdx: playerIdx, score: score));
+    _audio.tap();
+
+    if (progressiveScores.length == 1) {
+      // First throw: set initial target, switch turns
       progressiveTarget = score;
       progressiveTurn = 1;
-      _audio.tap();
-      notifyListeners();
-    } else if (progressiveTurn == 1 && playerIdx == 1 && p2State.scoreEntry == null) {
-      // P2 must beat P1's score
-      ps.scoreEntry = score;
-      if (score > progressiveTarget) {
-        // P2 beats it -> P2 wins
-        progressiveResolved = true;
-        roundComplete = true;
-      } else {
-        // P2 fails -> P1 wins
-        progressiveResolved = true;
-        roundComplete = true;
-      }
-      _audio.tap();
-      notifyListeners();
+    } else if (score > progressiveTarget) {
+      // Beat the target: update target, switch turns
+      progressiveTarget = score;
+      progressiveTurn = progressiveTurn == 0 ? 1 : 0;
+    } else {
+      // Failed to beat target: round over
+      progressiveLoserIdx = playerIdx;
+      progressiveResolved = true;
+      roundComplete = true;
     }
+
+    // Store latest score on player state for DB recording
+    final ps = playerIdx == 0 ? p1State : p2State;
+    ps.scoreEntry = score;
+
+    notifyListeners();
   }
 
   void _checkRoundReady() {
@@ -749,15 +770,13 @@ class GameState extends ChangeNotifier {
     bool p1Hit = false;
     bool p2Hit = false;
 
-    final s1 = p1State.scoreEntry ?? 0;
-    final s2 = p2State.scoreEntry ?? 0;
-
-    if (s2 > s1) {
-      // P2 beat P1's score
+    // The loser is the one who failed to beat the target
+    if (progressiveLoserIdx == 0) {
+      // P1 failed -> P2 wins
       p2Points = 1;
       p2Hit = true;
     } else {
-      // P2 couldn't beat it
+      // P2 failed -> P1 wins
       p1Points = 1;
       p1Hit = true;
     }
@@ -981,7 +1000,7 @@ class GameState extends ChangeNotifier {
       case ChallengeType.auction:
         return p1State.auctionBid != null || p2State.auctionBid != null;
       case ChallengeType.progressive:
-        return p1State.scoreEntry != null || p2State.scoreEntry != null;
+        return progressiveScores.isNotEmpty;
     }
   }
 }
