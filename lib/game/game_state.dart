@@ -181,6 +181,7 @@ class GameState extends ChangeNotifier {
       'p1': p1State.toJson(),
       'p2': p2State.toJson(),
       'round': roundNumber,
+      'challenge': currentChallenge?.toMap(),
     }));
     if (_history.length > _maxHistory) _history.removeAt(0);
   }
@@ -205,9 +206,33 @@ class GameState extends ChangeNotifier {
     judgeWinner = null;
     activeChaosCard = null;
     showingChaosCard = false;
+    showingCategoryPicker = false;
+    redemptionPlayerIdx = null;
     commentaryText = null;
     showCommentary = false;
-    nextChallenge(isUndo: true);
+
+    // Restore the previous challenge if stored, otherwise generate new
+    final challengeMap = prev['challenge'] as Map<String, dynamic>?;
+    if (challengeMap != null) {
+      currentChallenge = Challenge.fromMap(challengeMap);
+      // Reset progressive/auction state for the restored challenge
+      auctionPhase = AuctionPhase.bidding;
+      auctionWinnerIdx = null;
+      progressiveTarget = 0;
+      progressiveTurn = 0;
+      progressiveResolved = false;
+      progressiveLoserIdx = null;
+      progressiveScores = [];
+      // Set elimination lives if needed
+      if (currentChallenge!.type == ChallengeType.elimination) {
+        p1State.eliminationLives = currentChallenge!.subRounds;
+        p2State.eliminationLives = currentChallenge!.subRounds;
+      }
+      roundNumber++;
+      notifyListeners();
+    } else {
+      nextChallenge(isUndo: true);
+    }
   }
 
   /// Try to undo the most recent input on the current challenge.
@@ -558,7 +583,9 @@ class GameState extends ChangeNotifier {
   }
 
   void _checkRoundReady() {
-    final type = currentChallenge!.type;
+    final challenge = currentChallenge;
+    if (challenge == null) return;
+    final type = challenge.type;
 
     if (type == ChallengeType.hitMiss) {
       final p1Ready = p1State.hitMissChoice != null;

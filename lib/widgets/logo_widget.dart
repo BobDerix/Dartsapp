@@ -13,7 +13,7 @@ class LogoWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     if (useImage) {
       return Image.asset(
-        'assets/images/logo.png',
+        'assets/images/logoo.png',
         width: 280 * scale,
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) => _buildTextLogo(),

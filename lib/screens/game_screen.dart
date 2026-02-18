@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:confetti/confetti.dart';
 import '../game/game_state.dart';
@@ -76,7 +77,12 @@ class _GameScreenState extends State<GameScreen>
           });
         }
 
-        return Scaffold(
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) _onQuit();
+          },
+          child: Scaffold(
           body: Stack(
             children: [
               // Animated background
@@ -192,6 +198,7 @@ class _GameScreenState extends State<GameScreen>
                 ),
             ],
           ),
+        ),
         );
       },
     );
@@ -1910,6 +1917,7 @@ class _ScoreEntryRow extends StatelessWidget {
           child: TextField(
             controller: controller,
             keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             textAlign: TextAlign.center,
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             decoration: InputDecoration(
@@ -2616,6 +2624,7 @@ class _AuctionBidRow extends StatelessWidget {
           child: TextField(
             controller: controller,
             keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             textAlign: TextAlign.center,
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             decoration: InputDecoration(hintText: 'Bid ($minBid-20 darts)'),
@@ -2785,6 +2794,7 @@ class _ProgressiveControlsState extends State<_ProgressiveControls> {
                   child: TextField(
                     controller: _controller,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                         fontWeight: FontWeight.w700, fontSize: 18),
