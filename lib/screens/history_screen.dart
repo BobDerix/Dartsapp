@@ -25,20 +25,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _loadHistory() async {
     final games = await _db.getRecentGames(limit: 50);
-    final entries = <_GameHistoryEntry>[];
 
+    // Batch-load all unique player IDs in one pass
+    final playerIds = <int>{};
     for (final game in games) {
-      final p1 = await _db.getPlayer(game.player1Id);
-      final p2 = game.player2Id != null ? await _db.getPlayer(game.player2Id!) : null;
-      final winner = game.winnerId != null ? await _db.getPlayer(game.winnerId!) : null;
-
-      entries.add(_GameHistoryEntry(
-        session: game,
-        player1: p1,
-        player2: p2,
-        winner: winner,
-      ));
+      playerIds.add(game.player1Id);
+      if (game.player2Id != null) playerIds.add(game.player2Id!);
+      if (game.winnerId != null) playerIds.add(game.winnerId!);
     }
+    final players = <int, Player>{};
+    for (final id in playerIds) {
+      final p = await _db.getPlayer(id);
+      if (p != null) players[p.id!] = p;
+    }
+
+    final entries = games.map((game) => _GameHistoryEntry(
+      session: game,
+      player1: players[game.player1Id],
+      player2: game.player2Id != null ? players[game.player2Id!] : null,
+      winner: game.winnerId != null ? players[game.winnerId!] : null,
+    )).toList();
 
     setState(() {
       _entries = entries;

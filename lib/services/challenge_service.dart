@@ -105,13 +105,17 @@ class ChallengeService {
   ];
 
   /// Generate a random checkout value, avoiding bogey numbers.
+  /// Balanced distribution: 40% medium (20-80), 35% hard (81-130), 25% high (131-170).
   int _randomCheckout() {
     int num;
     do {
-      if (_random.nextDouble() > 0.7) {
-        num = _random.nextInt(70) + 101; // 101-170
+      final roll = _random.nextDouble();
+      if (roll < 0.40) {
+        num = _random.nextInt(61) + 20; // 20-80
+      } else if (roll < 0.75) {
+        num = _random.nextInt(50) + 81; // 81-130
       } else {
-        num = _random.nextInt(99) + 2; // 2-100
+        num = _random.nextInt(40) + 131; // 131-170
       }
     } while (_bogeyCheckouts.contains(num));
     return num;

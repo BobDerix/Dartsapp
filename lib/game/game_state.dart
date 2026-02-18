@@ -434,6 +434,7 @@ class GameState extends ChangeNotifier {
       if (activeChaosCard != null) {
         showingChaosCard = true;
         _audio.chaosCard();
+        _showCommentary(_commentary.onChaosCard());
       }
     } else if (isUndo) {
       activeChaosCard = null;
@@ -441,7 +442,12 @@ class GameState extends ChangeNotifier {
 
     // Occasional commentary on round start
     if (!isUndo && activeChaosCard == null && roundNumber > 1) {
-      if (roundNumber % 5 == 0) {
+      // Pressure commentary when a player is 1 point from winning
+      final p1Close = p1State.score >= targetScore - 1;
+      final p2Close = !isSinglePlayer && p2State.score >= targetScore - 1;
+      if (p1Close || p2Close) {
+        _showCommentary(_commentary.onPressure());
+      } else if (roundNumber % 5 == 0) {
         _showCommentary(_commentary.onRoundStart());
       }
     }
@@ -519,10 +525,10 @@ class GameState extends ChangeNotifier {
   int get auctionMinBid =>
       ChallengeService.minDartsForCheckout(currentChallenge?.targetValue ?? 0);
 
-  /// Handle auction bid.
-  void setAuctionBid(int playerIdx, int bid) {
-    if (auctionPhase != AuctionPhase.bidding) return;
-    if (bid < auctionMinBid) return; // Enforce minimum
+  /// Handle auction bid. Returns false if bid was rejected.
+  bool setAuctionBid(int playerIdx, int bid) {
+    if (auctionPhase != AuctionPhase.bidding) return false;
+    if (bid < auctionMinBid) return false; // Enforce minimum
     final ps = playerIdx == 0 ? p1State : p2State;
     ps.auctionBid = bid;
     _audio.tap();
@@ -541,6 +547,7 @@ class GameState extends ChangeNotifier {
       auctionPhase = AuctionPhase.executing;
     }
     notifyListeners();
+    return true;
   }
 
   /// Handle auction execution result (hit/miss by the bidding winner).
