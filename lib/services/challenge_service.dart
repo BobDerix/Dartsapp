@@ -323,12 +323,33 @@ class ChallengeService {
     return pool;
   }
 
+  /// All scores achievable with a single dart throw.
+  static const _singleDartScores = {
+    // Singles 1-20 + outer bull (25)
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25,
+    // Doubles D1-D20 (2-40 even) + D25/Bull (50)
+    22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 50,
+    // Triples T1-T20 (3-60 multiples of 3, but also odd triples)
+    21, 27, 33, 39, 42, 45, 48, 51, 54, 57, 60,
+  };
+
+  /// All doubles (valid checkout finishes).
+  static const _doubles = {
+    2, 4, 6, 8, 10, 12, 14, 16, 18, 20,
+    22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 50,
+  };
+
   /// Minimum number of darts needed for a checkout.
+  /// Must finish on a double. Computes exact answer using dart arithmetic.
   static int minDartsForCheckout(int checkout) {
     if (checkout <= 0) return 1;
-    if (checkout == 50) return 1; // Bullseye
-    if (checkout <= 40 && checkout % 2 == 0) return 1; // Single double
-    if (checkout <= 110) return 2;
+    // 1-dart: any double (even 2-40) or bullseye (50)
+    if (_doubles.contains(checkout)) return 1;
+    // 2-dart: first dart + finishing double = checkout
+    for (final d in _doubles) {
+      if (checkout > d && _singleDartScores.contains(checkout - d)) return 2;
+    }
+    // 3 darts (or impossible, e.g. bogey numbers — return 3 as safe minimum)
     return 3;
   }
 

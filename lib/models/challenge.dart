@@ -96,6 +96,7 @@ class Challenge {
     'difficulty': difficulty,
     'target_value': targetValue,
     'sub_rounds': subRounds,
+    'is_roulette': isRoulette,
   };
 
   factory Challenge.fromMap(Map<String, dynamic> map) => Challenge(
@@ -110,6 +111,7 @@ class Challenge {
     difficulty: map['difficulty'] as int? ?? 1,
     targetValue: map['target_value'] as int?,
     subRounds: map['sub_rounds'] as int? ?? 1,
+    isRoulette: map['is_roulette'] as bool? ?? false,
   );
 
   Challenge copyWith({
