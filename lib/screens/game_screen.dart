@@ -2405,9 +2405,18 @@ class _AuctionControlsState extends State<_AuctionControls> {
     final controller = playerIdx == 0 ? _p1Controller : _p2Controller;
     final bid = int.tryParse(controller.text);
     final minBid = widget.game.auctionMinBid;
-    if (bid != null && bid >= minBid && bid <= 20) {
-      widget.game.setAuctionBid(playerIdx, bid);
+    if (bid == null) return;
+    if (bid < minBid || bid > 20) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bid must be between $minBid and 20 darts'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: AppColors.miss,
+        ),
+      );
+      return;
     }
+    widget.game.setAuctionBid(playerIdx, bid);
   }
 
   @override
